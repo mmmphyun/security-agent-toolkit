@@ -1,0 +1,15 @@
+{
+  "device": "fw01",
+  "alert": {
+    "severity": "high",
+    "signature": "SSH Brute Force Attempt"
+  },
+  "src": {
+    "ip": "211.45.12.9",
+    "port": 5122
+  },
+  "dest": {
+    "ip": "10.1.2.5",
+    "port": 22
+  }
+}

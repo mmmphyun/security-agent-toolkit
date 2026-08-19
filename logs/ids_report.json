@@ -1,0 +1,23 @@
+{
+  "device": "ids01",
+  "date": "Aug 13",
+  "total": 2,
+  "alerts": [
+    {
+      "severity": "high",
+      "signature": "SSH Brute Force Attempt",
+      "src": {
+        "ip": "211.45.12.9",
+        "country": "KR"
+      }
+    },
+    {
+      "severity": "medium",
+      "signature": "Password Spraying",
+      "src": {
+        "ip": "185.220.101.34",
+        "country": "DE"
+      }
+    }
+  ]
+}

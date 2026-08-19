@@ -1,0 +1,11 @@
+{
+  "file": "sample_logs_broken.csv",
+  "total": 20,
+  "broken": 2,
+  "suspects": [
+    {
+      "user": "admin",
+      "count": 3
+    }
+  ]
+}
