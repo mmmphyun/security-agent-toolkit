@@ -1,0 +1,22 @@
+[
+  {
+    "rule": "brute_force",
+    "user": "admin",
+    "count": 5
+  },
+  {
+    "rule": "password_spraying",
+    "ip": "185.220.101.34",
+    "accounts": 4,
+    "country": "Germany",
+    "isp": "Stiftung Erneuerbare Freiheit"
+  },
+  {
+    "rule": "night_login",
+    "time": "03:17:09",
+    "user": "admin",
+    "ip": "211.45.12.9",
+    "country": "South Korea",
+    "isp": "SamsungSDS Inc"
+  }
+]
