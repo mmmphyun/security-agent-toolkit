@@ -145,7 +145,23 @@ def generate_draft_with_gemini(
 
 위 소스코드와 주석에 담긴 문제의식을 바탕으로, 지정된 규칙과 Frontmatter를 완벽히 준수하는 기술 블로그 마크다운을 생성하십시오. 마크다운 본문만 출력하고 기타 안내 문구는 생략하십시오."""
 
-    candidate_models = [model_name] if model_name else ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-2.5-flash"]
+    candidate_models = [model_name] if model_name else [
+        "gemini-3.6-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+    ]
+
+    # 동적으로 사용 가능한 generateContent 지원 모델 추가 탐색
+    try:
+        for m in genai.list_models():
+            if "generateContent" in m.supported_generation_methods:
+                model_clean_name = m.name.replace("models/", "")
+                if model_clean_name not in candidate_models:
+                    candidate_models.append(model_clean_name)
+    except Exception as e:
+        print(f"  [안내] 모델 목록 동적 조회 스킵 ({e})")
+
     last_error = None
 
     for candidate in candidate_models:
