@@ -193,15 +193,18 @@ const networkLinks = Array.from(edgeMap.values());
     </header>
 
     <nav class="blog-tabs" aria-label="Blog navigation">
-      <a class:list={["blog-tab", initialView === "posts" && "blog-tab--active"]} href={withBase('/blog/')}>홈</a>
-      <a class:list={["blog-tab", initialView === "tags" && "blog-tab--active"]} href={withBase('/blog/tags/')}>태그</a>
+      <button type="button" class="blog-tab blog-tab--active" data-category-tab="all">전체</button>
+      <button type="button" class="blog-tab" data-category-tab="ai·보안 자동화">1과목: AI·보안 자동화</button>
+      <button type="button" class="blog-tab" data-category-tab="네트워크·zero trust">2과목: 네트워크·ZT</button>
+      <button type="button" class="blog-tab" data-category-tab="프로젝트 분석 & 회고">프로젝트 회고</button>
+      <a class:list={["blog-tab", initialView === "tags" && "blog-tab--active"]} href={withBase('/blog/tags/')}>태그 아카이브</a>
     </nav>
 
     <div class="blog-layout">
       <main class="blog-feed">
         <section class="tag-view" data-tag-view hidden={initialView !== "tags"} aria-labelledby="tag-view-title">
           <div class="section-head">
-            <h1 id="tag-view-title">&#xD0DC;&#xADF8;</h1>
+            <h1 id="tag-view-title">태그 목록</h1>
             <p>{sortedTags.length} tags</p>
           </div>
           <div class="tag-cloud" data-tag-cloud>
@@ -227,7 +230,7 @@ const networkLinks = Array.from(edgeMap.values());
               {initialTagValue ? (
                 <h1 id="all-posts-title" data-post-heading>#{initialTagValue} <span>{postsForPage.length}</span></h1>
               ) : (
-                <h1 id="all-posts-title" data-post-heading>&#xC804;&#xCCB4; &#xAE00; <span>{totalPosts}</span></h1>
+                <h1 id="all-posts-title" data-post-heading>아카이브 <span>{totalPosts}</span></h1>
               )}
               <p data-search-count hidden></p>
             </div>
@@ -239,7 +242,7 @@ const networkLinks = Array.from(edgeMap.values());
           </div>
 
           <div class="post-grid" data-layout-view="bento" data-post-grid>
-            {postsForPage.map(({ post, index, tags, tagList, categoryValue, key, url }) => (
+            {postsForPage.map(({ post, index, tags, tagList, category, categoryValue, key, url }) => (
               <article class:list={["post-card", index === 0 && !initialTagValue && "post-card--feature"]} data-post-card data-post-key={key} data-post-title={post.data.title.toLowerCase()} data-post-desc={post.data.description.toLowerCase()} data-post-tags={tagList.join("|")} data-post-category={categoryValue}>
                 <a href={url} class="post-card__media" aria-label={post.data.title}>
                   {post.data.heroImage ? (
@@ -249,8 +252,8 @@ const networkLinks = Array.from(edgeMap.values());
                   )}
                 </a>
                 <div class="post-card__body">
-                  <div class="post-card__meta">
-                    <span>{String(index + 1).padStart(2, "0")}</span>
+                  <div class="post-card__meta flex items-center justify-between">
+                    <span class="text-xs px-2 py-0.5 rounded bg-zinc-800 text-sky-400 border border-zinc-700">{category}</span>
                     <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
                   </div>
                   <a href={url} class="post-card__title">{post.data.title}</a>
@@ -602,10 +605,27 @@ const networkLinks = Array.from(edgeMap.values());
         listObserver.observe(listLoadMore);
       }
 
+      const categoryTabButtons = Array.from(document.querySelectorAll("[data-category-tab]"));
+      categoryTabButtons.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          const tabCategory = tab.getAttribute("data-category-tab") ?? "all";
+          activeCategory = tabCategory === "all" ? "" : tabCategory.toLowerCase();
+          activeTag = "";
+          categoryTabButtons.forEach((t) => t.classList.remove("blog-tab--active"));
+          tab.classList.add("blog-tab--active");
+          setView("posts");
+          applyFilters();
+        });
+      });
+
       categoryButtons.forEach((button) => {
         button.addEventListener("click", () => {
           activeCategory = button.dataset.categoryFilter ?? "";
           activeTag = "";
+          categoryTabButtons.forEach((t) => {
+            const val = t.getAttribute("data-category-tab")?.toLowerCase();
+            t.classList.toggle("blog-tab--active", (val === "all" && !activeCategory) || val === activeCategory);
+          });
           setView("posts");
           applyFilters();
         });
