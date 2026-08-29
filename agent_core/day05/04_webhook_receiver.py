@@ -24,7 +24,7 @@ def alert():
     if "country" in alert:
         print(f"\t출처: {alert["country"]} ({alert["isp"]})")
 
-    with open("./received_alerts.json", "w", encoding="utf-8") as f:
+    with open("./logs/received_alerts.json", "w", encoding="utf-8") as f:
         json.dump(recived, f, ensure_ascii=False, indent=2)
 
     return {"status": "ok"}
