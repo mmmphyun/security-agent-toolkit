@@ -20,3 +20,6 @@ venv.bak/
 # IDEs
 .vscode/
 .idea/
+
+# Local Agent Handoff Context
+.context/
