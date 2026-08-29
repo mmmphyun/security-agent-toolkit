@@ -123,14 +123,11 @@ def generate_draft_with_gemini(
     day_id: str,
     day_dir: Path,
     api_key: str,
-    model_name: str = "gemini-1.5-flash",
+    model_name: Optional[str] = None,
 ) -> str:
-    """Gemini API를 호출하여 블로그 마크다운 생성"""
+    """Gemini API를 호출하여 블로그 마크다운 생성 (지원 모델 자동 폴백)"""
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        model_name=model_name,
-        system_instruction=build_system_prompt(),
-    )
+    system_instruction = build_system_prompt()
 
     course_info = COURSE_CATALOG.get(course_id, {})
     code_context = collect_code_context(day_dir)
@@ -148,18 +145,34 @@ def generate_draft_with_gemini(
 
 위 소스코드와 주석에 담긴 문제의식을 바탕으로, 지정된 규칙과 Frontmatter를 완벽히 준수하는 기술 블로그 마크다운을 생성하십시오. 마크다운 본문만 출력하고 기타 안내 문구는 생략하십시오."""
 
-    response = model.generate_content(user_prompt)
-    raw_text = response.text.strip()
+    candidate_models = [model_name] if model_name else ["gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-2.5-flash"]
+    last_error = None
 
-    # 코드 블록 감싸기(```markdown ... ```) 제거 처리
-    if raw_text.startswith("```markdown"):
-        raw_text = raw_text[len("```markdown"):].strip()
-    if raw_text.startswith("```"):
-        raw_text = raw_text[len("```"):].strip()
-    if raw_text.endswith("```"):
-        raw_text = raw_text[:-3].strip()
+    for candidate in candidate_models:
+        if not candidate:
+            continue
+        try:
+            model = genai.GenerativeModel(
+                model_name=candidate,
+                system_instruction=system_instruction,
+            )
+            response = model.generate_content(user_prompt)
+            raw_text = response.text.strip()
 
-    return raw_text
+            # 코드 블록 감싸기(```markdown ... ```) 제거 처리
+            if raw_text.startswith("```markdown"):
+                raw_text = raw_text[len("```markdown"):].strip()
+            if raw_text.startswith("```"):
+                raw_text = raw_text[len("```"):].strip()
+            if raw_text.endswith("```"):
+                raw_text = raw_text[:-3].strip()
+
+            return raw_text
+        except Exception as e:
+            last_error = e
+            print(f"  [재시도] 모델 '{candidate}' 호출 실패 ({e}), 다음 후보 시도...")
+
+    raise RuntimeError(f"모든 Gemini 모델 후보 호출 실패. 마지막 에러: {last_error}")
 
 
 def process_single_target(
