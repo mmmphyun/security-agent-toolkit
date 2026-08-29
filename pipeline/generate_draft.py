@@ -50,14 +50,23 @@ def scan_target_directories(repo_root: Path) -> List[Tuple[str, str, Path]]:
 
 
 def collect_code_context(day_dir: Path) -> str:
-    """해당 일차 디렉토리 내의 모든 코드, 주석, 데이터 파일 구조 인제스트"""
+    """해당 일차 디렉토리 내의 모든 코드, 주석, 파일 역할(연습 vs LLM 최적화) 인제스트"""
     context_chunks = []
 
-    # 파이썬 코드 파일 수집
+    # 파이썬 코드 파일 수집 및 역할 분석
     py_files = sorted(day_dir.glob("*.py"))
     for py_file in py_files:
         content = py_file.read_text(encoding="utf-8")
-        context_chunks.append(f"### 파일명: {py_file.name}\n```python\n{content}\n```\n")
+        filename = py_file.name
+
+        # 파일명 맥락 파악
+        role_desc = "실습 코드"
+        if "연습" in filename or "practice" in filename:
+            role_desc = "작성자가 당일 수업 6교시에 고민하여 직접 완성한 코드 (Student's Original Implementation)"
+        elif "llm" in filename or "optimized" in filename:
+            role_desc = "작성자의 코드를 바탕으로 AI(LLM)와 페어 프로그래밍을 통해 최적화/모범 구조를 도출한 코드 (AI-Assisted Optimization)"
+
+        context_chunks.append(f"### 파일명: {filename} [{role_desc}]\n```python\n{content}\n```\n")
 
     # logs 데이터 파일 목록 수집
     logs_dir = day_dir / "logs"
@@ -76,16 +85,21 @@ def build_system_prompt() -> str:
         humanize_guide = rules_file.read_text(encoding="utf-8")
 
     return f"""당신은 보안 자동화 엔지니어링 블로그의 전문 테크니컬 라이터입니다.
-지원자가 직접 작성하고 리팩터링한 코드와 주석을 인제스트하여, 고품질 기술 의사결정 기록(ADR) 포스트를 작성합니다.
+지원자가 직접 작성한 6교시 최종 코드('연습')와, AI를 페어 프로그래머로 활용하여 도출한 최적화 코드('llm')를 대조 분석하여 솔직하고 깊이 있는 기술 의사결정 기록(ADR) 포스트를 작성합니다.
 
 [한국어 휴머나이징 룰북 (im-not-ai 규격)]
 {humanize_guide}
 
-[엄격한 거버넌스 규칙]
+[엄격한 거버넌스 및 표현 규칙]
 1. 이모지(Emoji) 및 특수 아이콘 기호는 본문, 제목, 코드 블록 어디에도 절대 사용하지 마십시오. 강조는 표준 마크다운 문법만 사용합니다.
-2. AI 특유의 상투어구('살펴보겠습니다', '중요한 역할을 합니다', '매우 유용합니다', '지금까지' 등)와 영문 번역투를 완전히 배제하고, 시니어 엔지니어의 담백하고 엄밀한 한국어로 서술하십시오.
-3. 단순 파이썬 기초 문법 나열을 금지합니다. '기본 구현의 한계점'과 '작성자가 주석으로 고민하고 해결한 엔지니어링 의사결정'을 명확히 대조하십시오.
-4. Mermaid 다이어그램(```mermaid ... ```)을 필수로 1개 이상 포함하여 시스템 동작 흐름을 시각화하십시오.
+2. 불필요한 일반 단어 괄호 영단어 병기 금지:
+   - 금지 예시: 손상(Broken), 부작용(Side-Effect), 접근(Approach), 구조(Structure), 예외(Exception) 등 굳이 한글 뒤에 영어 단어를 괄호로 덧붙이는 행위 일절 금지.
+   - 허용 예시: 공식 컴퓨터공학/보안 대문자 약어(IDS, IPS, SIEM, SOAR, SRP, CSV, JSON, OOM, AST 등)는 정상 허용.
+3. 솔직한 Human-AI 페어 프로그래밍 관점 서술:
+   - '연습' 파일은 내가 수업 중에 직접 작성한 로직이고, 'llm' 파일은 AI 페어 프로그래머에게 검토를 요청하여 도출한 최적화 결과임을 명확히 구분하십시오.
+   - "내가 혼자 다 짰다"고 거짓 포장하지 말고, "내 코드의 한계점을 분석하고 AI와의 협업을 통해 어떤 설계 원칙(관심사 분리, strict zip 등)을 적용했는지"를 정직한 엔지니어링 시각으로 대조 서술하십시오.
+4. AI 특유의 상투어구('살펴보겠습니다', '중요한 역할을 합니다', '매우 유용합니다', '지금까지' 등) 배제.
+5. Mermaid 다이어그램(```mermaid ... ```)을 필수로 1개 이상 포함하여 시스템 동작 흐름을 시각화하십시오.
 
 [필수 마크다운 구조]
 반드시 다음 Frontmatter와 5개 섹션 구조를 정확히 지켜서 마크다운을 출력하십시오.
@@ -104,11 +118,11 @@ status: "published"
 - 해당 일차의 핵심 보안/자동화 주제 및 해결 과제 서술
 
 ## 2. 기본 구현의 한계점 (Limitation of Naive Approach)
-- 강의 예시 수준의 단순 구현이 가진 구조적, 보안적, I/O 측면의 한계 분석
+- 당일 작성자가 작성한 '연습' 코드의 구현 방식과 그것이 가진 구조적, 보안적, I/O 측면의 한계 분석
 
 ## 3. 엔지니어링 의사결정 및 리팩터링 (Engineering Decisions)
-- 작성자가 코드와 주석에서 고민한 질문과 해답(Q&A)을 바탕으로 구체적인 리팩터링 근거 서술
-- 핵심 코드 스니펫 포함
+- 작성자의 고민 주석 및 AI 페어 프로그래머와의 협업을 통해 'llm' 최적화 코드로 발전시킨 구체적인 설계 의사결정 서술
+- 연습 코드 vs llm 최적화 코드 대조 스니펫 포함
 
 ## 4. 시스템 아키텍처 흐름도 (Mermaid Diagram)
 - 전체 동작을 보여주는 Mermaid 시퀀스 또는 플로우차트 다이어그램
