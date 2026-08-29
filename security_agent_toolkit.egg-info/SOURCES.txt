@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-pipeline/generate_draft.py
-pipeline/harness.py
-security_agent_toolkit.egg-info/PKG-INFO
-security_agent_toolkit.egg-info/SOURCES.txt
-security_agent_toolkit.egg-info/dependency_links.txt
-security_agent_toolkit.egg-info/requires.txt
-security_agent_toolkit.egg-info/top_level.txt
