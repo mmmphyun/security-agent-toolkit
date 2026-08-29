@@ -24,6 +24,11 @@ venv.bak/
 # Local Agent Handoff Context
 .context/
 
+# Build & Distribution
+build/
+*.egg-info/
+*.egg
+
 # Node & Frontend
 node_modules/
 dist/

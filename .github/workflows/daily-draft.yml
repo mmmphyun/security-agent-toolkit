@@ -54,6 +54,7 @@ jobs:
           commit-message: "feat(docs): 새 실습 일차 블로그 초안 자동 생성 및 하네스 검증 통과"
           branch: "automation/daily-devlog-draft"
           delete-branch: true
+          add-paths: docs/posts/
           title: "feat(docs): 기술 블로그 새 초안 검토 요청"
           body: |
             ## 일일 기술 블로그 초안 자동 생성 완료
