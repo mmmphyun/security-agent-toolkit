@@ -69,9 +69,17 @@ def collect_code_context(day_dir: Path) -> str:
 
 
 def build_system_prompt() -> str:
-    """AGENTS.md 및 im-not-ai 기반 시스템 프롬프트 구성"""
-    return """당신은 보안 자동화 엔지니어링 블로그의 전문 테크니컬 라이터입니다.
+    """AGENTS.md 및 pipeline/rules/humanize_rules.md 기반 시스템 프롬프트 구성"""
+    rules_file = Path(__file__).resolve().parent / "rules" / "humanize_rules.md"
+    humanize_guide = ""
+    if rules_file.exists():
+        humanize_guide = rules_file.read_text(encoding="utf-8")
+
+    return f"""당신은 보안 자동화 엔지니어링 블로그의 전문 테크니컬 라이터입니다.
 지원자가 직접 작성하고 리팩터링한 코드와 주석을 인제스트하여, 고품질 기술 의사결정 기록(ADR) 포스트를 작성합니다.
+
+[한국어 휴머나이징 룰북 (im-not-ai 규격)]
+{humanize_guide}
 
 [엄격한 거버넌스 규칙]
 1. 이모지(Emoji) 및 특수 아이콘 기호는 본문, 제목, 코드 블록 어디에도 절대 사용하지 마십시오. 강조는 표준 마크다운 문법만 사용합니다.
