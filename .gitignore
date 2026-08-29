@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.class
@@ -23,3 +23,9 @@ venv.bak/
 
 # Local Agent Handoff Context
 .context/
+
+# Node & Frontend
+node_modules/
+dist/
+.astro/
+.cache/

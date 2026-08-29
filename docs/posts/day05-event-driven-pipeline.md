@@ -1,3 +1,19 @@
+---
+title: "보안 관제 자동화를 위한 이벤트 트리거와 Flask 웹훅 수신 파이프라인 구축"
+slug: "day05-event-driven-pipeline"
+description: "Python schedule 기반 비동기 트리거와 Flask app.url_map 리플렉션을 활용한 웹훅 수신 파이프라인 설계 및 I/O 최적화"
+pubDate: 2026-08-29
+category: "Security Automation"
+tags:
+  - "Security"
+  - "Python"
+  - "Flask"
+  - "Webhook"
+  - "Automation"
+status:
+  - "Published"
+---
+
 # 보안 관제 자동화를 위한 이벤트 트리거와 Flask 웹훅 수신 파이프라인 구축
 
 - **작성일:** 2026-08-29
