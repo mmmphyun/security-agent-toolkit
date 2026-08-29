@@ -10,18 +10,20 @@ import re
 from pathlib import Path
 from typing import List, Tuple
 
-# 유니코드 이모지 패턴 (표준 이모지 및 특수 기호 범위)
+# 순수 이모지 및 특수 픽토그램 유니코드 패턴 (한글 음절 및 CJK 완전 배제)
 EMOJI_PATTERN = re.compile(
     "["
     "\U0001F600-\U0001F64F"  # Emoticons
     "\U0001F300-\U0001F5FF"  # Misc Symbols and Pictographs
     "\U0001F680-\U0001F6FF"  # Transport and Map
-    "\U0001F1E0-\U0001F1FF"  # Flags
-    "\U0001F900-\U0001F9FF"  # Supplemental Symbols
-    "\U0001FA00-\U0001FA6F"  # Chess Symbols, etc.
+    "\U0001F700-\U0001F77F"  # Alchemical
+    "\U0001F780-\U0001F7FF"  # Geometric Shapes Ext
+    "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
+    "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
+    "\U0001FA00-\U0001FA6F"  # Chess Symbols
     "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
-    "\U00002702-\U000027B0"  # Dingbats
-    "\U000024C2-\U0001F251"  # Enclosed characters
+    "\U00002600-\U000026FF"  # Misc symbols (e.g. ⚡, ☕, ⚠️)
+    "\U00002700-\U000027BF"  # Dingbats (e.g. 🚀, ✨, ❌)
     "]+",
     flags=re.UNICODE,
 )
