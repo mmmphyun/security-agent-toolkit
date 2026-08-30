@@ -37,23 +37,27 @@ COURSE_CATALOG = {
 def get_available_gemini_model() -> str:
     """사용 가능한 최신 Gemini 모델 우선순위 선택"""
     preferred_models = [
+        "models/gemini-3.6-flash",
+        "gemini-3.6-flash",
         "models/gemini-2.5-flash",
-        "models/gemini-1.5-flash",
-        "models/gemini-1.5-pro",
         "gemini-2.5-flash",
+        "models/gemini-1.5-flash",
         "gemini-1.5-flash",
+        "models/gemini-1.5-pro",
+        "gemini-1.5-pro",
     ]
     try:
         available = [m.name for m in genai.list_models() if "generateContent" in m.supported_generation_methods]
+        print(f"[정보] 사용 가능한 모델 목록: {available}")
         for pref in preferred_models:
             for avail in available:
-                if pref in avail or avail.endswith(pref.replace("models/", "")):
+                if pref == avail or avail.endswith(pref.replace("models/", "")):
                     return avail
         if available:
             return available[0]
-    except Exception:
-        pass
-    return "gemini-1.5-flash"
+    except Exception as e:
+        print(f"[경고] 모델 목록 조회 실패: {e}")
+    return "models/gemini-3.6-flash"
 
 
 def scan_course_targets(repo_root: Path) -> List[Tuple[str, str, Path]]:
@@ -341,6 +345,8 @@ def main():
     if not api_key:
         print("[오류] GEMINI_API_KEY 환경변수가 설정되지 않았습니다.")
         sys.exit(1)
+
+    genai.configure(api_key=api_key)
 
     course_targets = scan_course_targets(repo_root)
     project_targets = scan_project_targets(repo_root)
