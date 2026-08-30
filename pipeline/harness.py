@@ -40,12 +40,12 @@ AI_CLICHE_WORDS = [
     "지금까지",
 ]
 
-# ADR 필수 섹션 키워드
+# 기술 문서 필수 5대 영역 키워드 (과목 실습 & 프로젝트 회고 공통 대응)
 REQUIRED_SECTIONS = [
-    ("Context", ["개요", "배경", "Context", "학습 맥락"]),
-    ("Limitation", ["한계", "기본 구현", "Naive", "Limitation"]),
-    ("Decision", ["엔지니어링 의사결정", "리팩터링", "Decision", "Refactoring"]),
-    ("Verification", ["검증", "회고", "Verification", "Takeaway"]),
+    ("Context/Overview", ["개요", "배경", "학습 개념", "개념 요약", "Context", "Objective", "Background", "Overview"]),
+    ("Challenges/Limitation", ["한계", "기본 구현", "도전 과제", "기술적 제약", "문제", "Naive", "Limitation", "Challenge", "Constraint"]),
+    ("Engineering Decisions", ["엔지니어링 의사결정", "리팩터링", "해결 방안", "트레이드오프", "Decision", "Refactoring", "Solution", "Trade-off"]),
+    ("Verification/Results", ["검증", "회고", "성과", "배움", "결과", "Verification", "Takeaway", "Result", "Lesson"]),
 ]
 
 
