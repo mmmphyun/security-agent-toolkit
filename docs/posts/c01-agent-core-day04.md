@@ -125,6 +125,13 @@ def save_alerts_data(file_path: Path, data: Dict[str, Any]) -> None:
 
 ## 5. 검증 및 회고
 
-`request_llm.py`를 실행하여 3단계에서 탐지된 위협 IP 목록을 인리치먼트한 결과, 공격 IP인 `192.168.1.105` 및 공인 IP 대역에 대해 국가와 ISP 정보를 결합하고 `enriched_alerts.json`으로 안전하게 저장했다. 사설 IP 대역의 경우 조회 실패를 정상 감지하고 프로세스 중단 없이 리포트를 마쳤다.
+`request_llm.py`를 실행하여 3단계에서 탐지된 위협 IP 목록을 인리치먼트한 콘솔 출력 결과는 다음과 같다.
+
+```text
+[추적] 185.220.101.34 -> Germany (Stiftung Erneuerbare Freiheit)
+[추적] 211.45.12.9 -> South Korea (SamsungSDS Inc)
+```
+
+공격 출발지 IP 대역에 대해 IP-API 조회를 거쳐 해외 Tor/VPN 대역인 `185.220.101.34`(독일 / Stiftung Erneuerbare Freiheit)와 국내 공인 IP `211.45.12.9`(한국 / SamsungSDS Inc)의 국가 및 ISP 메타데이터를 결합하고, 이를 `enriched_alerts.json`으로 안전하게 저장했다.
 
 외부 API와의 통신을 포함하는 보안 자동화 코드는 네트워크 지연이나 장애가 언제든 발생할 수 있다는 전제 하에 작성되어야 한다. 명시적 타임아웃과 계층화된 함수 분리가 외부 장애로부터 시스템 전체를 보호하는 방파제 역할을 한다는 점을 확인했다.
