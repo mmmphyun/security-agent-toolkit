@@ -2,14 +2,15 @@
 pipeline.generate_draft
 
 1. 부트캠프 과목(agent_core, network_zt 등) 실습 코드 및 주석 인제스트
+   - 3단 비교 스토리라인(기본 베이스라인 -> 실무적 결함 -> 나의 개선 시도 -> 최종 최적화) 공식 탑재
    - *llm*.py 존재 여부에 따라 '페어 프로그래밍 대조' vs '단독 리팩터링' 모드 자동 분기
-   - 학습 개념 요약(1번) 및 전체 산출물 파이프라인(2번) 공식 탑재
 2. 자율 프로젝트 디렉토리(projects/**) 내의 비정형 기술/회고 메모 인제스트
-3. Google Gemini API를 호출하여 이모지 0개, 괄호 영단어 번역투 0개의 고품질 기술 블로그 초안을 생성합니다.
+3. 다중 Gemini 모델 즉시 폴백(Instant Fallback) 및 쿨다운을 통한 견고한(Hardened) API 파이프라인
 """
 
 import os
 import sys
+import time
 import argparse
 from pathlib import Path
 from datetime import datetime
@@ -33,31 +34,14 @@ COURSE_CATALOG = {
     },
 }
 
-
-def get_available_gemini_model() -> str:
-    """사용 가능한 최신 Gemini 모델 우선순위 선택"""
-    preferred_models = [
-        "models/gemini-3.6-flash",
-        "gemini-3.6-flash",
-        "models/gemini-2.5-flash",
-        "gemini-2.5-flash",
-        "models/gemini-1.5-flash",
-        "gemini-1.5-flash",
-        "models/gemini-1.5-pro",
-        "gemini-1.5-pro",
-    ]
-    try:
-        available = [m.name for m in genai.list_models() if "generateContent" in m.supported_generation_methods]
-        print(f"[정보] 사용 가능한 모델 목록: {available}")
-        for pref in preferred_models:
-            for avail in available:
-                if pref == avail or avail.endswith(pref.replace("models/", "")):
-                    return avail
-        if available:
-            return available[0]
-    except Exception as e:
-        print(f"[경고] 모델 목록 조회 실패: {e}")
-    return "models/gemini-3.6-flash"
+PREFERRED_MODELS = [
+    "models/gemini-3.6-flash",
+    "models/gemini-3.7-flash",
+    "models/gemini-3.5-flash",
+    "models/gemini-3.1-flash-lite-preview",
+    "models/gemini-2.5-pro",
+    "models/gemini-2.5-flash",
+]
 
 
 def scan_course_targets(repo_root: Path) -> List[Tuple[str, str, Path]]:
@@ -120,7 +104,7 @@ def collect_course_context(day_dir: Path) -> Tuple[str, bool]:
 
 
 def build_course_system_prompt(has_llm: bool) -> str:
-    """과목 실습용 시스템 프롬프트 (llm 파일 유무에 따라 모드 분기)"""
+    """과목 실습용 시스템 프롬프트 (3단 비교 스토리라인 내재화)"""
     rules_file = Path(__file__).resolve().parent / "rules" / "humanize_rules.md"
     humanize_guide = rules_file.read_text(encoding="utf-8") if rules_file.exists() else ""
 
@@ -129,29 +113,30 @@ def build_course_system_prompt(has_llm: bool) -> str:
         pair_programming_guide = """
 [페어 프로그래밍 서술 지침: llm 파일 감지됨]
 - '연습' 파일은 내가 수업 중에 직접 작성한 6교시 최종 구현이고, 'llm' 파일은 AI 페어 프로그래머에게 검토를 요청하여 도출한 최적화 결과입니다.
-- "내가 혼자 다 짰다"고 거짓말하지 말고, "내 코드의 한계점을 분석하고 AI와의 협업을 통해 어떤 설계 원칙을 적용했는지"를 정직한 시각으로 대조 서술하십시오.
+- 3단 비교 스토리라인을 따르십시오:
+  1) 일반적인 기본 베이스라인 코드 제시
+  2) 실무 관점에서의 결함과 나의 문제의식 서술
+  3) 나의 6교시 시도('연습')와 AI 페어 프로그래밍 최종 최적화('llm') 대조
 """
     else:
         pair_programming_guide = """
 [단독 엔지니어링 서술 지침: llm 파일 없음]
-- 인위적인 AI 페어 프로그래밍을 날조하지 마십시오.
-- 작성자가 코드와 주석에서 고민한 질문과 해답(Q&A)을 바탕으로, 기본 구현 대비 스스로 어떤 구조적 개선과 리팩터링을 진행했는지를 서술하십시오.
+- 가상의 AI 페어 프로그래밍을 날조하지 마십시오.
+- 1) 일반적인 단순 베이스라인 예제 제시 -> 2) 실무적 결함 지적 -> 3) 주석에 기반한 나의 구조적 리팩터링 과정으로 서술하십시오.
 """
 
     return f"""당신은 보안 자동화 엔지니어링 블로그의 전문 테크니컬 라이터입니다.
-지원자가 작성한 코드와 주석을 인제스트하여, 학습 개념과 전체 산출물 흐름, 엔지니어링 의사결정이 완벽히 담긴 기술 의사결정 기록(ADR) 포스트를 작성합니다.
+독자가 학습 맥락을 100% 이해할 수 있도록, 개념 요약과 전체 산출물 흐름, 그리고 '기본 베이스라인 vs 실무적 결함 vs 리팩터링'의 3단 비교 스토리라인을 갖춘 기술 의사결정 기록(ADR) 포스트를 작성합니다.
 
 [한국어 휴머나이징 룰북]
 {humanize_guide}
 
 [엄격한 거버넌스 및 표현 규칙]
 1. 이모지(Emoji) 및 특수 아이콘 기호 절대 금지.
-2. 불필요한 일반 단어 괄호 영단어 병기 금지:
-   - 금지: 손상(Broken), 부작용(Side-Effect), 접근(Approach), 구조(Structure), 예외(Exception) 등
-   - 허용: 공식 컴퓨터공학/보안 대문자 약어(IDS, IPS, SIEM, SOAR, SRP, CSV, JSON, OOM, AST, API 등)
+2. 불필요한 일반 단어 괄호 영단어 병기 금지 (단, 공식 대문자 약어는 허용).
 3. AI 특유의 상투어구('살펴보겠습니다', '중요한 역할을 합니다', '매우 유용합니다', '지금까지' 등) 배제.
 {pair_programming_guide}
-4. Mermaid 다이어그램(```mermaid ... ```)을 2번 섹션에 필수로 1개 이상 포함하여 시스템 동작 흐름을 시각화하십시오.
+4. Mermaid 다이어그램(```mermaid ... ```)을 2번 섹션에 필수로 1개 이상 포함하여 전체 산출물의 동작 흐름을 시각화하십시오.
 
 [필수 마크다운 구조]
 ---
@@ -171,11 +156,12 @@ status: "published"
 - 오늘 실습으로 도출된 파일들이 유기적으로 결합되어 완성한 최종 시스템/데이터 흐름 개괄
 - 전체 시스템 아키텍처 다이어그램 (Mermaid)
 
-## 3. 기본 구현의 한계점 (Limitation of Naive Approach)
-- 단순 구현 또는 초기 작성 코드가 가진 성능, 예외 처리, I/O 측면의 한계 분석
+## 3. 기본 구현의 한계점 (Limitation of Baseline Approach)
+- 일반적인 교재나 튜토리얼 수준의 단순 베이스라인 코드 스니펫(5~10줄) 제시
+- 실제 운영 환경/대용량 트래픽에서 이 코드가 깨지는 구체적 이유(비정형 데이터, 메모리, 예외 붕괴 등)와 나의 문제의식 서술
 
 ## 4. 엔지니어링 의사결정 및 리팩터링 (Engineering Decisions)
-- 구체적인 리팩터링 및 설계 의사결정 근거 서술 (코드 스니펫 대조 포함)
+- 나의 시도('연습')와 최적화 코드('llm')의 구체적 리팩터링 의사결정 서술 및 코드 스니펫 대조
 
 ## 5. 검증 및 회고 (Verification & Takeaway)
 - 동작 검증 결과 및 실무 관점의 배움 요약
@@ -232,26 +218,27 @@ def clean_markdown_fences(raw_text: str) -> str:
     return text
 
 
-import time
-
-def call_gemini_with_retry(model, prompt: str, max_retries: int = 3) -> str:
-    """Gemini API 호출 및 429 Rate Limit 발생 시 자동 지연 재시도"""
-    for attempt in range(max_retries):
+def generate_content_with_fallback(system_instruction: str, user_prompt: str) -> str:
+    """다중 Gemini 모델 즉시 폴백 (Instant Fallback) 호출"""
+    for model_name in PREFERRED_MODELS:
         try:
-            response = model.generate_content(prompt)
-            return response.text
+            print(f"[호출 시도] 모델: {model_name}")
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction=system_instruction,
+            )
+            response = model.generate_content(user_prompt)
+            if response and response.text:
+                return response.text
         except Exception as e:
             err_str = str(e)
-            if "429" in err_str or "quota" in err_str.lower():
-                wait_time = 45 * (attempt + 1)
-                print(f"[알림] API 분당 호출 한도(429) 감지. {wait_time}초 대기 후 재시도합니다... (시도 {attempt+1}/{max_retries})")
-                time.sleep(wait_time)
-            else:
-                raise e
-    raise RuntimeError("최대 재시도 횟수 초과")
+            print(f"[알림] {model_name} 호출 실패 ({err_str[:80]}...). 다음 가용 모델로 폴백합니다.")
+            time.sleep(2)
+            continue
+    raise RuntimeError("모든 Gemini 가용 모델 호출 실패")
 
 
-def process_course_target(course_id: str, day_id: str, day_dir: Path, output_dir: Path, api_key: str) -> bool:
+def process_course_target(course_id: str, day_id: str, day_dir: Path, output_dir: Path) -> bool:
     """과목 실습 초고 생성"""
     course_info = COURSE_CATALOG.get(course_id, {})
     prefix = course_info.get("prefix", "c01")
@@ -265,11 +252,7 @@ def process_course_target(course_id: str, day_id: str, day_dir: Path, output_dir
     print(f"[생성 중] {course_info.get('course_name')} {day_id} 초고 생성...")
     try:
         code_context, has_llm = collect_course_context(day_dir)
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name=get_available_gemini_model(),
-            system_instruction=build_course_system_prompt(has_llm),
-        )
+        system_instruction = build_course_system_prompt(has_llm)
 
         user_prompt = f"""[학습 정보]
 - 과목: {course_info.get('course_name', course_id)}
@@ -283,9 +266,9 @@ def process_course_target(course_id: str, day_id: str, day_dir: Path, output_dir
 [소스코드 및 주석 컨텍스트]
 {code_context}
 
-위 코드를 바탕으로 Frontmatter와 5대 섹션 구조(개념 요약, 산출물 파이프라인, 한계점, 의사결정, 검증 및 회고)를 완벽히 준수하는 마크다운 본문만 출력하십시오."""
+위 코드를 바탕으로 Frontmatter와 3단 대조 스토리라인(개념 요약, 산출물 파이프라인, 베이스라인 한계점, 의사결정 대조, 검증 및 회고)을 완벽히 준수하는 마크다운 본문만 출력하십시오."""
 
-        raw_text = call_gemini_with_retry(model, user_prompt)
+        raw_text = generate_content_with_fallback(system_instruction, user_prompt)
         content = clean_markdown_fences(raw_text)
         output_file.write_text(content, encoding="utf-8")
 
@@ -297,14 +280,14 @@ def process_course_target(course_id: str, day_id: str, day_dir: Path, output_dir
             return False
 
         print(f"[완료] 과목 초고 생성 성공: {output_file.name}")
-        time.sleep(5)  # 연속 호출 시 Rate limit 방지 쿨다운
+        time.sleep(3)
         return True
     except Exception as e:
         print(f"[실패] 과목 생성 중 예외: {e}")
         return False
 
 
-def process_project_target(project_name: str, note_slug: str, note_file: Path, output_dir: Path, api_key: str) -> bool:
+def process_project_target(project_name: str, note_slug: str, note_file: Path, output_dir: Path) -> bool:
     """자율 프로젝트 메모 초고 생성"""
     target_slug = f"proj-{project_name.replace('_', '-')}-{note_slug.replace('_', '-')}"
     output_file = output_dir / f"{target_slug}.md"
@@ -315,12 +298,7 @@ def process_project_target(project_name: str, note_slug: str, note_file: Path, o
 
     print(f"[생성 중] 프로젝트 [{project_name}] - {note_slug} 초고 생성...")
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(
-            model_name=get_available_gemini_model(),
-            system_instruction=build_project_system_prompt(),
-        )
-
+        system_instruction = build_project_system_prompt()
         note_content = note_file.read_text(encoding="utf-8")
         user_prompt = f"""[프로젝트 정보]
 - 프로젝트 식별자: {project_name}
@@ -334,7 +312,7 @@ def process_project_target(project_name: str, note_slug: str, note_file: Path, o
 
 위 메모를 바탕으로 시니어 엔지니어링 관점의 기술 블로그 아티클을 작성하십시오. Frontmatter와 마크다운 본문만 출력하십시오."""
 
-        raw_text = call_gemini_with_retry(model, user_prompt)
+        raw_text = generate_content_with_fallback(system_instruction, user_prompt)
         content = clean_markdown_fences(raw_text)
         output_file.write_text(content, encoding="utf-8")
 
@@ -346,7 +324,7 @@ def process_project_target(project_name: str, note_slug: str, note_file: Path, o
             return False
 
         print(f"[완료] 프로젝트 초고 생성 성공: {output_file.name}")
-        time.sleep(5)  # 연속 호출 시 Rate limit 방지 쿨다운
+        time.sleep(3)
         return True
     except Exception as e:
         print(f"[실패] 프로젝트 생성 중 예외: {e}")
@@ -376,11 +354,11 @@ def main():
 
     all_success = True
     for course_id, day_id, day_dir in course_targets:
-        if not process_course_target(course_id, day_id, day_dir, output_dir, api_key):
+        if not process_course_target(course_id, day_id, day_dir, output_dir):
             all_success = False
 
     for project_name, note_slug, note_file in project_targets:
-        if not process_project_target(project_name, note_slug, note_file, output_dir, api_key):
+        if not process_project_target(project_name, note_slug, note_file, output_dir):
             all_success = False
 
     sys.exit(0 if all_success else 1)
