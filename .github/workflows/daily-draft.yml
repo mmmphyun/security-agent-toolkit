@@ -1,8 +1,15 @@
 name: Daily DevLog Draft Generator
 
 on:
+  push:
+    paths:
+      - 'agent_core/**'
+      - 'network_zt/**'
+      - 'projects/**'
+    branches-ignore:
+      - 'automation/**'
   schedule:
-    # 매일 한국 시간 18:00 (UTC 09:00) 실행
+    # 매일 한국 시간 18:00 (UTC 09:00) 보조 정기 점검
     - cron: '0 9 * * *'
   workflow_dispatch: # GitHub 웹 UI에서 수동 실행 가능
 

@@ -2,6 +2,8 @@
 pipeline.generate_draft
 
 1. 부트캠프 과목(agent_core, network_zt 등) 실습 코드 및 주석 인제스트
+   - *llm*.py 존재 여부에 따라 '페어 프로그래밍 대조' vs '단독 리팩터링' 모드 자동 분기
+   - 학습 개념 요약(1번) 및 전체 산출물 파이프라인(2번) 공식 탑재
 2. 자율 프로젝트 디렉토리(projects/**) 내의 비정형 기술/회고 메모 인제스트
 3. Google Gemini API를 호출하여 이모지 0개, 괄호 영단어 번역투 0개의 고품질 기술 블로그 초안을 생성합니다.
 """
@@ -16,7 +18,6 @@ from typing import Dict, List, Optional, Tuple
 import google.generativeai as genai
 from pipeline.harness import validate_markdown_file
 
-# 과목별 메타데이터 매핑
 COURSE_CATALOG = {
     "agent_core": {
         "prefix": "c01",
@@ -88,10 +89,12 @@ def scan_project_targets(repo_root: Path) -> List[Tuple[str, str, Path]]:
     return targets
 
 
-def collect_course_context(day_dir: Path) -> str:
-    """과목 일차 코드, 주석, 파일 역할 인제스트"""
+def collect_course_context(day_dir: Path) -> Tuple[str, bool]:
+    """과목 일차 코드, 주석 인제스트 및 llm 파일 존재 여부 반환"""
     chunks = []
     py_files = sorted(day_dir.glob("*.py"))
+    has_llm = any("llm" in f.name.lower() for f in py_files)
+
     for py_file in py_files:
         content = py_file.read_text(encoding="utf-8")
         filename = py_file.name
@@ -99,7 +102,7 @@ def collect_course_context(day_dir: Path) -> str:
         role_desc = "실습 코드"
         if "연습" in filename or "practice" in filename:
             role_desc = "작성자가 당일 수업 6교시에 고민하여 직접 완성한 코드 (Student's Original Implementation)"
-        elif "llm" in filename or "optimized" in filename:
+        elif "llm" in filename:
             role_desc = "작성자의 코드를 바탕으로 AI(LLM)와 페어 프로그래밍을 통해 최적화/모범 구조를 도출한 코드 (AI-Assisted Optimization)"
 
         chunks.append(f"### 파일명: {filename} [{role_desc}]\n```python\n{content}\n```\n")
@@ -109,30 +112,42 @@ def collect_course_context(day_dir: Path) -> str:
         log_files = [f.name for f in logs_dir.iterdir() if f.is_file()]
         chunks.append(f"### 참조 데이터 파일 (logs/):\n- {', '.join(log_files)}\n")
 
-    return "\n".join(chunks)
+    return "\n".join(chunks), has_llm
 
 
-def build_course_system_prompt() -> str:
-    """과목 실습용 시스템 프롬프트"""
+def build_course_system_prompt(has_llm: bool) -> str:
+    """과목 실습용 시스템 프롬프트 (llm 파일 유무에 따라 모드 분기)"""
     rules_file = Path(__file__).resolve().parent / "rules" / "humanize_rules.md"
     humanize_guide = rules_file.read_text(encoding="utf-8") if rules_file.exists() else ""
 
+    pair_programming_guide = ""
+    if has_llm:
+        pair_programming_guide = """
+[페어 프로그래밍 서술 지침: llm 파일 감지됨]
+- '연습' 파일은 내가 수업 중에 직접 작성한 6교시 최종 구현이고, 'llm' 파일은 AI 페어 프로그래머에게 검토를 요청하여 도출한 최적화 결과입니다.
+- "내가 혼자 다 짰다"고 거짓말하지 말고, "내 코드의 한계점을 분석하고 AI와의 협업을 통해 어떤 설계 원칙을 적용했는지"를 정직한 시각으로 대조 서술하십시오.
+"""
+    else:
+        pair_programming_guide = """
+[단독 엔지니어링 서술 지침: llm 파일 없음]
+- 인위적인 AI 페어 프로그래밍을 날조하지 마십시오.
+- 작성자가 코드와 주석에서 고민한 질문과 해답(Q&A)을 바탕으로, 기본 구현 대비 스스로 어떤 구조적 개선과 리팩터링을 진행했는지를 서술하십시오.
+"""
+
     return f"""당신은 보안 자동화 엔지니어링 블로그의 전문 테크니컬 라이터입니다.
-지원자가 직접 작성한 6교시 최종 코드('연습')와, AI를 페어 프로그래머로 활용하여 도출한 최적화 코드('llm')를 대조 분석하여 솔직하고 깊이 있는 기술 의사결정 기록(ADR) 포스트를 작성합니다.
+지원자가 작성한 코드와 주석을 인제스트하여, 학습 개념과 전체 산출물 흐름, 엔지니어링 의사결정이 완벽히 담긴 기술 의사결정 기록(ADR) 포스트를 작성합니다.
 
 [한국어 휴머나이징 룰북]
 {humanize_guide}
 
 [엄격한 거버넌스 및 표현 규칙]
-1. 이모지(Emoji) 및 특수 아이콘 기호는 본문, 제목, 코드 블록 어디에도 절대 사용하지 마십시오. 강조는 표준 마크다운 문법만 사용합니다.
+1. 이모지(Emoji) 및 특수 아이콘 기호 절대 금지.
 2. 불필요한 일반 단어 괄호 영단어 병기 금지:
-   - 금지: 손상(Broken), 부작용(Side-Effect), 접근(Approach), 구조(Structure), 예외(Exception) 등 굳이 한글 뒤에 영어 단어를 괄호로 덧붙이는 행위 일절 금지.
-   - 허용: 공식 컴퓨터공학/보안 대문자 약어(IDS, IPS, SIEM, SOAR, SRP, CSV, JSON, OOM, AST 등)는 정상 허용.
-3. 솔직한 Human-AI 페어 프로그래밍 관점 서술:
-   - '연습' 파일은 내가 수업 중에 직접 작성한 로직이고, 'llm' 파일은 AI 페어 프로그래머에게 검토를 요청하여 도출한 최적화 결과임을 명확히 구분하십시오.
-   - "내가 혼자 다 짰다"고 거짓 포장하지 말고, "내 코드의 한계점을 분석하고 AI와의 협업을 통해 어떤 설계 원칙을 적용했는지"를 정직한 엔지니어링 시각으로 대조 서술하십시오.
-4. AI 특유의 상투어구('살펴보겠습니다', '중요한 역할을 합니다', '매우 유용합니다', '지금까지' 등) 배제.
-5. Mermaid 다이어그램(```mermaid ... ```)을 필수로 1개 이상 포함하여 시스템 동작 흐름을 시각화하십시오.
+   - 금지: 손상(Broken), 부작용(Side-Effect), 접근(Approach), 구조(Structure), 예외(Exception) 등
+   - 허용: 공식 컴퓨터공학/보안 대문자 약어(IDS, IPS, SIEM, SOAR, SRP, CSV, JSON, OOM, AST, API 등)
+3. AI 특유의 상투어구('살펴보겠습니다', '중요한 역할을 합니다', '매우 유용합니다', '지금까지' 등) 배제.
+{pair_programming_guide}
+4. Mermaid 다이어그램(```mermaid ... ```)을 2번 섹션에 필수로 1개 이상 포함하여 시스템 동작 흐름을 시각화하십시오.
 
 [필수 마크다운 구조]
 ---
@@ -145,11 +160,21 @@ category: "카테고리명"
 status: "published"
 ---
 
-## 1. 개요 및 학습 맥락 (Context & Objective)
-## 2. 기본 구현의 한계점 (Limitation of Naive Approach)
-## 3. 엔지니어링 의사결정 및 리팩터링 (Engineering Decisions)
-## 4. 시스템 아키텍처 흐름도 (Mermaid Diagram)
+## 1. 오늘의 학습 개념 요약 (Core Concepts)
+- 오늘 다룬 핵심 기술/이론의 배경 및 동작 원리를 본인의 언어로 명쾌하게 설명
+
+## 2. 전체 산출물 파이프라인 구조 (Deliverables & Workflow)
+- 오늘 실습으로 도출된 파일들이 유기적으로 결합되어 완성한 최종 시스템/데이터 흐름 개괄
+- 전체 시스템 아키텍처 다이어그램 (Mermaid)
+
+## 3. 기본 구현의 한계점 (Limitation of Naive Approach)
+- 단순 구현 또는 초기 작성 코드가 가진 성능, 예외 처리, I/O 측면의 한계 분석
+
+## 4. 엔지니어링 의사결정 및 리팩터링 (Engineering Decisions)
+- 구체적인 리팩터링 및 설계 의사결정 근거 서술 (코드 스니펫 대조 포함)
+
 ## 5. 검증 및 회고 (Verification & Takeaway)
+- 동작 검증 결과 및 실무 관점의 배움 요약
 """
 
 
@@ -216,25 +241,26 @@ def process_course_target(course_id: str, day_id: str, day_dir: Path, output_dir
 
     print(f"[생성 중] {course_info.get('course_name')} {day_id} 초고 생성...")
     try:
+        code_context, has_llm = collect_course_context(day_dir)
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel(
             model_name=get_available_gemini_model(),
-            system_instruction=build_course_system_prompt(),
+            system_instruction=build_course_system_prompt(has_llm),
         )
 
-        code_context = collect_course_context(day_dir)
         user_prompt = f"""[학습 정보]
 - 과목: {course_info.get('course_name', course_id)}
 - 일차: {day_id}
 - 카테고리: {course_info.get('category', 'AI·보안 자동화')}
 - 기본 태그: {', '.join(course_info.get('default_tags', []))}
 - 현재 날짜: {datetime.now().strftime('%Y-%m-%d')}
-- 추천 Slug 접두사: {target_slug}
+- 추천 Slug: {target_slug}
+- 페어 프로그래밍 모드: {'활성화 (llm 파일 감지됨)' if has_llm else '비활성화 (단독 리팩터링 모드)'}
 
 [소스코드 및 주석 컨텍스트]
 {code_context}
 
-위 코드를 바탕으로 Frontmatter와 ADR 구조를 완벽히 준수하는 마크다운 본문만 출력하십시오."""
+위 코드를 바탕으로 Frontmatter와 5대 섹션 구조(개념 요약, 산출물 파이프라인, 한계점, 의사결정, 검증 및 회고)를 완벽히 준수하는 마크다운 본문만 출력하십시오."""
 
         response = model.generate_content(user_prompt)
         content = clean_markdown_fences(response.text)
@@ -282,7 +308,7 @@ def process_project_target(project_name: str, note_slug: str, note_file: Path, o
 [작성자 메모 원본]
 {note_content}
 
-위 메모를 바탕으로 기술 블로그 아티클을 작성하십시오. Frontmatter와 마크다운 본문만 출력하십시오."""
+위 메모를 바탕으로 시니어 엔지니어링 관점의 기술 블로그 아티클을 작성하십시오. Frontmatter와 마크다운 본문만 출력하십시오."""
 
         response = model.generate_content(user_prompt)
         content = clean_markdown_fences(response.text)
