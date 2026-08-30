@@ -232,6 +232,25 @@ def clean_markdown_fences(raw_text: str) -> str:
     return text
 
 
+import time
+
+def call_gemini_with_retry(model, prompt: str, max_retries: int = 3) -> str:
+    """Gemini API 호출 및 429 Rate Limit 발생 시 자동 지연 재시도"""
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "quota" in err_str.lower():
+                wait_time = 45 * (attempt + 1)
+                print(f"[알림] API 분당 호출 한도(429) 감지. {wait_time}초 대기 후 재시도합니다... (시도 {attempt+1}/{max_retries})")
+                time.sleep(wait_time)
+            else:
+                raise e
+    raise RuntimeError("최대 재시도 횟수 초과")
+
+
 def process_course_target(course_id: str, day_id: str, day_dir: Path, output_dir: Path, api_key: str) -> bool:
     """과목 실습 초고 생성"""
     course_info = COURSE_CATALOG.get(course_id, {})
@@ -266,8 +285,8 @@ def process_course_target(course_id: str, day_id: str, day_dir: Path, output_dir
 
 위 코드를 바탕으로 Frontmatter와 5대 섹션 구조(개념 요약, 산출물 파이프라인, 한계점, 의사결정, 검증 및 회고)를 완벽히 준수하는 마크다운 본문만 출력하십시오."""
 
-        response = model.generate_content(user_prompt)
-        content = clean_markdown_fences(response.text)
+        raw_text = call_gemini_with_retry(model, user_prompt)
+        content = clean_markdown_fences(raw_text)
         output_file.write_text(content, encoding="utf-8")
 
         is_valid, errors = validate_markdown_file(output_file)
@@ -278,6 +297,7 @@ def process_course_target(course_id: str, day_id: str, day_dir: Path, output_dir
             return False
 
         print(f"[완료] 과목 초고 생성 성공: {output_file.name}")
+        time.sleep(5)  # 연속 호출 시 Rate limit 방지 쿨다운
         return True
     except Exception as e:
         print(f"[실패] 과목 생성 중 예외: {e}")
@@ -314,8 +334,8 @@ def process_project_target(project_name: str, note_slug: str, note_file: Path, o
 
 위 메모를 바탕으로 시니어 엔지니어링 관점의 기술 블로그 아티클을 작성하십시오. Frontmatter와 마크다운 본문만 출력하십시오."""
 
-        response = model.generate_content(user_prompt)
-        content = clean_markdown_fences(response.text)
+        raw_text = call_gemini_with_retry(model, user_prompt)
+        content = clean_markdown_fences(raw_text)
         output_file.write_text(content, encoding="utf-8")
 
         is_valid, errors = validate_markdown_file(output_file)
@@ -326,6 +346,7 @@ def process_project_target(project_name: str, note_slug: str, note_file: Path, o
             return False
 
         print(f"[완료] 프로젝트 초고 생성 성공: {output_file.name}")
+        time.sleep(5)  # 연속 호출 시 Rate limit 방지 쿨다운
         return True
     except Exception as e:
         print(f"[실패] 프로젝트 생성 중 예외: {e}")
