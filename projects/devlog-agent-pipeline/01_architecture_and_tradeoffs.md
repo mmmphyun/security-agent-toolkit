@@ -12,9 +12,9 @@
 - **결론:** 별도 웹을 만드는 것은 유지보수 비용과 서버 호스팅 비용이 발생하는 극단적 오버엔지니어링으로 판단.
 - **선택:** 개발자 표준 플랫폼인 GitHub Pull Request 및 Push 이벤트를 채택. 코드를 푸시하면 Actions가 백그라운드에서 초고를 자동 생성해 대기시키고, 작성자는 Antigravity 에이전트와 대화하며 검토 및 원클릭 배포하도록 설계.
 
-### LLM 엔진: Anthropic Claude vs Google Gemini
-- **고민:** 한국어 뉘앙스가 뛰어난 Claude API와 빠른 속도의 Gemini API 비교.
-- **결론:** 일일 정기 실행 파이프라인이므로, 추가 과금 없이 영구 무료(Free Tier)로 사용 가능한 Google Gemini API 채택.
+### LLM 엔진: Anthropic Claude vs Google Gemini 3.x Flash
+- **고민:** 한국어 뉘앙스가 뛰어난 Claude API와 최신 추론/코딩 성능을 갖춘 Gemini 3.x 계열 비교.
+- **결론:** 일일 정기 실행 파이프라인이므로, 추가 과금 없이 영구 무료(Free Tier)로 사용 가능한 Google Gemini 3.6/3.7 Flash 모델을 최우선으로 채택하여 운영 비용 0원 달성.
 
 ### 프론트엔드: Next.js Fumadocs vs Astro Bento Blog
 - **고민:** 대기업 기술 문서 느낌의 Next.js Docsite vs 미니멀하고 세련된 Astro Bento 테마.
