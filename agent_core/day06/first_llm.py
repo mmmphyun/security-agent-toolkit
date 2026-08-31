@@ -1,3 +1,5 @@
+# 1교시. LLM — 다음 낱말을 맞히는 기계, 2교시. 프롬프트 — LLM에게 일을 시키는 법
+
 import os
 
 import requests
