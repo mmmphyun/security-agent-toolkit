@@ -1,0 +1,20 @@
+[
+  {
+    "severity": "high",
+    "summary": "관리자 계정을 대상으로 한 브루트포스 공격이 5회 탐지되었습니다.",
+    "tool": "lock_account",
+    "result": "locked"
+  },
+  {
+    "severity": "high",
+    "summary": "독일 출신의 IP 185.220.101.34에서 4개의 계정을 대상으로 패스워드 스프레이ing 공격이 탐지되었습니다.",
+    "tool": "block_ip",
+    "result": "held"
+  },
+  {
+    "severity": "medium",
+    "summary": "새벽 시간대에 관리자 계정으로 로그인 시도가 발생하여 주의 깊은 모니터링이 필요합니다.",
+    "tool": "watch",
+    "result": "watching"
+  }
+]
