@@ -77,11 +77,15 @@ AI가 블로그 포스트를 생성할 때는 반드시 다음 4가지 핵심 �
 1. **결정론적 타겟 식별 및 컨텍스트 인제스트:**
    - 먼저 `uv run python pipeline/harness.py --scan-pending`을 실행하여 `docs/posts/`에 아직 작성되지 않은 미작성 대기 목록을 조회합니다.
    - 대기 목록이 0건이면 작업을 즉시 종료합니다.
-   - 커리큘럼 허브에서 당일 실습 목표 및 세부 실습 명세를 자동 인제스트합니다:
+   - **과목 실습 타겟(COURSE):** 커리큘럼 허브에서 당일 실습 목표 및 세부 실습 명세를 자동 인제스트합니다:
      `uv run python pipeline/harness.py --fetch-curriculum <course_id> <day_id>`
-   - 대상 디렉토리의 실습 소스코드, 주석, logs/ 데이터를 함께 수집합니다. 별도의 수동 요약 노트(`lecture_notes.md`)를 작성할 필요가 전혀 없습니다.
+     (대상 디렉토리의 실습 소스코드, 주석, logs/ 데이터를 함께 수집).
+   - **자율 프로젝트 타겟(PROJECT):** 프로젝트 메모와 연결된 레포지토리를 자동 인제스트합니다:
+     `uv run python pipeline/harness.py --fetch-project <project_name> <note_file>`
+     (선언형 Frontmatter 기반 2단계 탐색 및 사견 매핑 핵심 소스코드 스니펫 추출).
 2. **초안 생성 및 휴머나이징:**
-   - 초기 프로토타입(`*practice.py`)과 리팩터링 구현체(`*llm.py`) 코드를 대조 분석하여 5단 ADR 구조 블로그 초고(`docs/posts/cXX-*.md`)를 작성합니다 (*llm.py가 없는 경우 주석 기반 구조 개선안으로 단독 서술).
+   - **과목 실습:** 초기 프로토타입(`*practice.py`)과 리팩터링 구현체(`*llm.py`) 코드를 대조 분석하여 5단 ADR 구조 블로그 초고(`docs/posts/cXX-*.md`)를 작성합니다 (*llm.py가 없는 경우 주석 기반 구조 개선안으로 단독 서술).
+   - **자율 프로젝트:** 인제스트된 프로젝트 프로파일 및 핵심 소스코드와 작성자 사견을 유기적으로 결합하여 5단 ADR 구조 블로그 초고(`docs/posts/proj-*.md`, category: `"프로젝트 분석 & 회고"`)를 작성합니다.
    - `humanize-korean` (`im-not-ai` 기준) 스킬을 적용하여 학생 티를 배제하고 시니어 엔지니어 어조를 유지합니다.
 3. **하네스 자가 교정 (Self-correction):**
    - `pipeline/harness.py`를 직접 실행하고, 위반 사항이 발생할 경우 하네스를 통과할 때까지 스스로 수정합니다.
