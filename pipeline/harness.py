@@ -220,6 +220,7 @@ def main():
         print("  1. 하네스 검증: python harness.py <검증할_마크다운_파일경로>")
         print("  2. 대기 타겟 스캔: python harness.py --scan-pending")
         print("  3. 커리큘럼 컨텍스트 조회: python harness.py --fetch-curriculum <course_id> <day_id>")
+        print("  4. 프로젝트 컨텍스트 조회: python harness.py --fetch-project <project_name> <note_file>")
         sys.exit(1)
 
     arg = sys.argv[1]
@@ -246,6 +247,19 @@ def main():
         d_id = sys.argv[3]
         note = fetch_day_lecture_note(c_id, d_id)
         print(note)
+        sys.exit(0)
+
+    if arg == "--fetch-project":
+        from pipeline.analyze_project import analyze_project_context
+
+        if len(sys.argv) < 4:
+            print("사용법: python harness.py --fetch-project <project_name> <note_file>")
+            sys.exit(1)
+        proj_name = sys.argv[2]
+        note_name = sys.argv[3]
+        repo_root = Path(__file__).resolve().parent.parent
+        context_str = analyze_project_context(repo_root, proj_name, note_name)
+        print(context_str)
         sys.exit(0)
 
     target_path = Path(arg)
