@@ -1,5 +1,5 @@
 ---
-title: "Flask 웹훅과 Schedule 기반 보안 경보 디스패처 및 이벤트 수신 서버 설계"
+title: "Flask 웹훅과 Schedule 기반 실시간 보안 경보 수신 및 디스패처 서버 설계"
 slug: "c01-agent-core-day05"
 description: "고차 함수와 콜백 기반 스케줄러, Flask 동적 라우트 추출(app.url_map), 웹훅 I/O 병목 분석 및 단독 설계 의사결정 기록"
 pubDate: 2026-08-30
@@ -16,69 +16,53 @@ status: "published"
 
 ## 2. 전체 산출물 파이프라인 구조
 
-Day 05 실습은 6개의 개별 모듈이 결합되어 스케줄링, 경보 발송, 수신 서버, 동적 라우팅을 아우르는 엔드투엔드 이벤트 주도 파이프라인을 구성한다.
+Day 05 실습 산출물은 경보 발송자(`05_alert_dispatcher.py`)와 웹훅 수신 서버(`04_webhook_receiver.py`), 그리고 주기적 감시기(`01_trigger_scheduler.py`)로 구성된다.
 
 ```mermaid
-flowchart TD
-    subgraph Periodic_Trigger["주기적 스케줄링 (01_trigger_scheduler.py)"]
-        A["enriched_alerts.json"] --> B["count_alerts (고차 함수)"]
-        B -->|콜백 주입| C["process_result (임계값 경보 판정)"]
-    end
-
-    subgraph Webhook_Pipeline["웹훅 이벤트 파이프라인"]
-        D["05_alert_dispatcher.py (경보 발송자)"] -->|HTTP POST /alert| E["04_webhook_receiver.py (웹훅 수신 서버)"]
-        E --> F["received_alerts.json (영속 저장)"]
-    end
-
-    subgraph Monitoring_API["관제 데스크 API (02_server_routes.py)"]
-        G["GET /status"] --> H["가동 상태 및 경보 수"]
-        I["GET /rules"] --> J["적용 중인 룰 목록"]
-        K["GET /help"] --> L["app.url_map 동적 라우트 목록"]
-    end
+flowchart LR
+    A["보강된 경보 (enriched_alerts.json)"] --> B["05_alert_dispatcher.py (전송기)"]
+    B -->|HTTP POST /alert| C["04_webhook_receiver.py (Flask 서버: 5001)"]
+    C --> D["received_alerts.json 저장 (영구 적재)"]
+    C --> E["콘솔 [수신] 및 출처 실시간 출력"]
+    F["01_trigger_scheduler.py"] -.->|주기적 모니터링| A
 ```
 
-파이프라인은 크게 세 영역으로 동작한다.
-1. 주기적 감시: 스케줄러가 `enriched_alerts.json`의 상태를 2초 주기로 폴링하여 콜백 함수로 결과를 넘긴다.
-2. 실시간 웹훅 디스패치: 발송자(`05_alert_dispatcher.py`)가 보강된 위협 데이터를 수신 서버(`04_webhook_receiver.py`)의 `/alert` 엔드포인트로 전송하고 결과를 확인한다.
-3. 메타데이터 조회 API: 중앙 라우팅 서버(`02_server_routes.py`)가 `app.url_map`을 통해 등록된 엔드포인트를 동적으로 노출하며 전체 관제 상태를 제공한다.
+전송기는 경보 목록을 순회하며 웹훅 엔드포인트로 비동기 성격의 POST 요청을 발송하고, 수신 서버는 페이로드를 파싱하여 즉시 디스크에 저장한 뒤 상태를 반환한다.
 
 ## 3. 기본 구현의 한계점
 
-입문 교재나 단순 튜토리얼에서는 다음과 같이 단일 루프에 하드코딩된 형태로 배치 작업을 작성한다.
+강의 기본 예시 코드는 매 요청마다 메모리 리스트에 데이터를 누적하고 전체 파일을 덮어쓰는 단순 방식을 사용한다.
 
 ```python
-# 단순 접근 방식 (베이스라인 예제)
-import time
-import json
-
-while True:
-    with open("alerts.json", encoding="utf-8") as f:
-        data = json.load(f)
-        count = len(data["alerts"])
-        if count >= 4:
-            print(f"[경고] 임계치 초과: {count}건")
-    time.sleep(2)
+# 단순 웹훅 수신 예제 (베이스라인)
+received = []
+@app.route("/alert", methods=["POST"])
+def alert():
+    data = request.get_json()
+    received.append(data)
+    with open("received_alerts.json", "w", encoding="utf-8") as f:
+        json.dump(received, f, indent=2)
+    return {"result": "ok"}
 ```
 
-이러한 단순 구현은 실무 운영 환경에서 다음과 같은 구조적 결함을 안고 있다.
+이 접근 방식은 실무 환경에서 심각한 병목을 유발한다.
 
-1. **파일 I/O와 경보 액션의 강한 결합:** 데이터 읽기 작업과 화면 출력 및 경보 판정 로직이 하나의 함수에 하드코딩되면, Slack 알림이나 이메일 발송 등 새로운 알림 채널을 추가할 때마다 핵심 데이터 로더 코드를 직접 수정해야 한다.
-2. **정적 엔드포인트 하드코딩으로 인한 동기화 붕괴:** API 안내 엔드포인트에서 사용 가능한 경로 목록을 문자열 배열로 직접 관리하면, 라우트를 추가하거나 수정할 때 실제 엔드포인트와 안내 문서 간의 불일치가 발생한다.
-3. **대용량 웹훅 수신 시 I/O 병목 및 데이터 오염:** 웹훅 수신 핸들러에서 매 요청마다 전체 JSON 파일을 읽고 덮어쓰는 방식을 사용하면, 동시 요청 유입 시 파일 락 충돌과 심각한 I/O 지연이 발생한다.
+1. **디스크 I/O 병목 및 CPU 낭비:** 경보가 유입될 때마다 과거 데이터 전체를 다시 직렬화하여 파일 전체를 덮어쓰는 방식은 데이터 크기가 증가함에 따라 $O(N^2)$의 I/O 비용을 발생시킨다.
+2. **동시성 충돌 및 데이터 유실:** 다수의 발송자가 동시에 웹훅을 호출하거나 멀티 워커(Gunicorn 등) 환경에서 구동될 경우 파일 락 충돌로 인해 데이터가 유실되거나 JSON 형식이 파괴된다.
+3. **메모리 누수 위험:** 프로세스 메모리의 전역 리스트(`received`)에 모든 경보를 영구 유지하면 서버 장기 가동 시 OOM(Out of Memory) 크래시가 발생한다.
 
 ## 4. 엔지니어링 의사결정 및 리팩터링
 
-코드 작성 과정에서 제기된 엔지니어링 질문들을 분석하고, 단독 설계를 통해 시스템 아키텍처를 고도화했다.
+소스코드를 단독 설계하면서 주석으로 치열하게 고민한 세 가지 기술적 의사결정을 적용했다.
 
-### 4.1. 고차 함수와 콜백 패턴을 통한 스케줄러 디커플링
-`01_trigger_scheduler.py`에서 데이터 로더(`count_alerts`)를 고차 함수로 설계하고, 후속 처리 로직(`process_result`)을 콜백 함수로 주입받도록 구조화했다.
+### 4.1. 고차 함수와 콜백 패턴을 적용한 감시 스케줄러 (`01_trigger_scheduler.py`)
+스케줄러 작업 함수가 특정 비즈니스 로직에 종속되지 않도록, 파일 검사와 집계를 수행하는 함수(`count_alerts`)를 고차 함수로 설계하고 결과 처리를 콜백 함수(`process_result`)로 분리했다.
 
 ```python
-# 01_trigger_scheduler.py (고차 함수와 콜백 분리)
 def process_result(now, count):
     print(f"{now} 현재 경보 {count}건")
     if count >= 4:
-        print(f"[경고] 경보가 4건 이상")
+        print("[경고] 경보가 4건 이상")
 
 def count_alerts(file, callback=None):
     with open(file, encoding="utf-8") as f:
@@ -89,37 +73,52 @@ def count_alerts(file, callback=None):
     if callback:
         callback(now, count)
         return None
-
     return now, count
 
-# 2초 주기 스케줄러 등록
-schedule.every(2).seconds.do(count_alerts, file="./logs/enriched_alerts.json", callback=process_result)
+schedule.every(2).seconds.do(
+    count_alerts, file="./logs/enriched_alerts.json", callback=process_result
+)
 ```
 
-이 설계를 통해 `count_alerts`는 파일 읽기 책임만 지며, 경보 기준 변경이나 전송 방식 변경 시 콜백 함수만 교체할 수 있는 유연성을 확보했다.
-
-### 4.2. Flask app.url_map 순회를 통한 라우트 동적 탐색
-`02_server_routes.py`에서 등록된 모든 API 엔드포인트를 하드코딩하지 않고, Flask 내부의 `app.url_map.iter_rules()` 메타데이터를 순회하여 동적으로 추출하는 `/help` 라우트를 구현했다.
+### 4.2. Flask 동적 라우트 추출 및 HTTP 상태 코드 최적화 (`02_server_routes.py`)
+수동으로 엔드포인트 목록을 관리하는 대신 `app.url_map.iter_rules()`를 순회하여 현재 서버에 등록된 모든 라우트를 동적으로 반환하는 `/help` 엔드포인트를 구현했다. 또한 별도의 응답 페이로드가 필요 없는 웹훅 핸들러에 대해 HTTP 표준 상태 코드인 `204 No Content`를 반환하도록 설계했다.
 
 ```python
-# 02_server_routes.py (동적 라우트 순회)
 @app.route("/help")
 def available_address():
     routes = [rule.rule for rule in app.url_map.iter_rules() if rule.endpoint != "static"]
     return f"available_routes: {routes}"
+
+@app.route("/alert", methods=["POST"])
+def alert():
+    data = request.get_json()
+    # 비즈니스 로직 처리...
+    return "", 204
 ```
 
-새로운 라우트 데코레이터가 추가되더라도 `/help` 엔드포인트는 코드 수정 없이 항상 최신 API 명세를 실시간으로 반영한다.
-
-### 4.3. 웹훅 응답 상태 코드(204 No Content) 및 실무 스토리지 I/O 분석
-단순 이벤트 통보용 웹훅 수신부(`02_server_routes.py`)에서 반환할 본문이 없을 때 `return "", 204`를 명시하여 불필요한 페이로드 전송을 방지했다.
-
-또한 `04_webhook_receiver.py`의 파일 쓰기 방식을 분석하여, 동시 다발적인 웹훅 요청 환경에서는 전체 JSON 덮어쓰기 대신 각 이벤트를 개별 라인으로 추가하는 JSON Lines(`.jsonl`) 포맷과 Append(`"a"`) 모드, 나아가 Redis 큐를 활용한 비동기 작업 분리가 실무 엔터프라이즈 환경의 표준임을 도출했다.
+### 4.3. 대용량 실무 환경을 위한 JSON Lines Append 아키텍처 도출
+주석에 정리한 아키텍처 분석을 바탕으로, 프로덕션 환경에서는 전체 파일 덮어쓰기 대신 JSON Lines(`.jsonl`) 포맷과 Append 모드(`"a"`)를 채택해야 한다는 엔지니어링 기준을 확립했다.
 
 ## 5. 검증 및 회고
 
-로컬 5001번 포트에 Flask 수신 서버를 가동하고 스케줄러와 발송자(`05_alert_dispatcher.py`)를 실행하여 검증을 진행했다.
+`04_webhook_receiver.py`를 먼저 5001 포트로 기동한 뒤, `05_alert_dispatcher.py`를 실행하여 3건의 경보를 전송했다.
 
-스케줄러는 2초마다 경보 건수를 정확히 집계하여 기준치 초과 경보를 출력했고, 발송자가 전송한 위협 이벤트는 웹훅 수신기를 통해 국가 및 ISP 정보와 함께 실시간 출력된 후 `received_alerts.json`에 영속화되었다. 또한 `03_client_requester.py`를 통해 `/rules` 엔드포인트를 호출하여 JSON 응답을 정상 수신했다.
+전송기 터미널 출력:
+```text
+[전송] brute_force -> ok
+[전송] password_spraying -> ok
+[전송] night_login -> ok
+```
 
-단순한 일회성 파이썬 스크립트에서 벗어나 스케줄러, 웹훅, REST API로 이어지는 이벤트 기반 자동화 파이프라인을 완성하면서, 소프트웨어 간의 느슨한 결합과 인터페이스 기반 설계의 가치를 확인했다.
+수신 서버 터미널 출력:
+```text
+[수신] brute_force 경보
+[수신] password_spraying 경보
+	출처: Germany (Stiftung Erneuerbare Freiheit)
+[수신] night_login 경보
+	출처: South Korea (SamsungSDS Inc)
+```
+
+`received_alerts.json` 파일에도 3건의 경보가 완벽히 저장되었다.
+
+Day 01의 문자열 파싱부터 Day 05의 웹훅 통신까지, 개별 모듈들이 결합하여 하나의 완성된 보안 자동화 시스템으로 동작함을 확인했다. 데이터 수집, 위협 탐지, 지리 정보 보강, 실시간 전파의 전 주기를 표준 인터페이스로 연결하는 엔지니어링 감각을 정립했다.
