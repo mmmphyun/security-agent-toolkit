@@ -4,7 +4,7 @@ slug: "proj-devlog-agent-pipeline-03-zero-command-and-coauthoring"
 description: "GitHub Actions Cron 지연 극복을 위한 Scheduled Tasks 전환, 제로 커맨드 초안 대기 및 에이전트 실시간 공동 저작 설계 회고"
 pubDate: 2026-08-30
 tags: ["Project", "DevLog Pipeline", "Co-Authoring", "Automation", "Architecture"]
-category: "프로젝트 분석 & 회고"
+category: "프로젝트/DevLog 자율 에이전트"
 status: "published"
 ---
 
@@ -49,7 +49,7 @@ GitHub Actions의 무료 Cron 스케줄러에 의존하던 초기 구현은 다�
 ### 4.1. Antigravity Scheduled Tasks 전환 및 제로 커맨드 환경
 클라우드 Cron의 불확실성을 배제하고, Antigravity IDE의 `Scheduled Tasks` 기능(평일 17:00: `0 17 * * 1-5`)을 채택했다. 수업 종료 시점에 에이전트가 스스로 깨어나 당일 실습 코드를 분석하고 초안을 대기시킨다. 개발자는 수동으로 명령을 내릴 필요가 없다.
 
-### 4.2. 강제 확인 게이트웨이 (Mandatory Confirmation Gate)
+### 4.2. 강제 확인 게이트웨이 설계
 에이전트가 하네스 검증과 빌드 테스트를 100% 통과한 초고를 작성하더라도, **사용자의 명시적 승인이 있기 전에는 절대로 `git commit` 및 `git push`를 실행하지 못하도록** 정책을 강제했다. 사용자가 수정을 요구하면 대화를 통해 즉각 반영하고, 최종 승인 시에만 원자적 커밋 시퀀스로 안전하게 배포한다.
 
 ### 4.3. 3단 비교 스토리라인 및 주석 다차원 분석 공식화
