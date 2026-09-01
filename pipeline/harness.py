@@ -227,6 +227,79 @@ def check_ai_cliches(content: str) -> tuple[list[str], list[str]]:
     return hard_errors, soft_warnings
 
 
+def scan_all_topics(repo_root: Path) -> list[dict]:
+    """기존 발행된 모든 블로그 포스트의 핵심 H2/H3 엔지니어링 의사결정 및 트러블슈팅 주제 색인 목록 추출"""
+    posts_dir = repo_root / "docs" / "posts"
+    topics_ledger = []
+    if not posts_dir.exists():
+        return topics_ledger
+
+    standard_exclude = [
+        "개념 요약", "한계점", "엔지니어링 의사결정", "검증 및 회고",
+        "동작 검증", "확장 로드맵", "구조", "Context", "Limitation", "Decision", "Takeaway"
+    ]
+
+    for md_file in sorted(posts_dir.glob("*.md")):
+        content = md_file.read_text(encoding="utf-8")
+        title_m = re.search(r"^title:\s*[\"']?(.*?)[\"']?$", content, re.MULTILINE)
+        title = title_m.group(1) if title_m else md_file.stem
+
+        # 실제 기술적 의사결정 및 문제 해결 H3/H2 헤딩만 추출
+        headings = []
+        for line in content.splitlines():
+            line_s = line.strip()
+            if line_s.startswith("### ") or (line_s.startswith("## ") and not line_s.startswith("# ")):
+                h_text = re.sub(r"^#{2,3}\s*", "", line_s).strip()
+                if h_text and len(h_text) > 3:
+                    if not any(ex in h_text for ex in standard_exclude):
+                        headings.append(h_text)
+
+        topics_ledger.append({
+            "slug": md_file.stem,
+            "file": md_file.name,
+            "title": title,
+            "topics": headings
+        })
+    return topics_ledger
+
+
+def check_duplicate_topics(content: str, current_file: Path) -> list[str]:
+    """신규 포스트의 H3 주제가 기존 포스트와 중복되는지 검사하고 인용 권장 알림 생성"""
+    warnings = []
+    repo_root = current_file.resolve().parent.parent.parent
+    existing_ledger = scan_all_topics(repo_root)
+
+    current_headings = []
+    for line in content.splitlines():
+        line_s = line.strip()
+        if line_s.startswith("### "):
+            h_text = re.sub(r"^###\s*", "", line_s).strip()
+            if h_text and len(h_text) > 4:
+                current_headings.append(h_text)
+
+    for current_h in current_headings:
+        # 단어 토큰 분리 (2글자 이상 키워드)
+        current_keywords = set(re.findall(r"[가-힣a-zA-Z0-9]{3,}", current_h))
+        if not current_keywords:
+            continue
+
+        for prev in existing_ledger:
+            if prev["slug"] == current_file.stem:
+                continue
+
+            for prev_h in prev["topics"]:
+                prev_keywords = set(re.findall(r"[가-힣a-zA-Z0-9]{3,}", prev_h))
+                overlap = current_keywords.intersection(prev_keywords)
+                # 3개 이상의 핵심 기술 키워드가 겹치고, 본문에 해당 이전 포스트 링크가 없는 경우
+                if len(overlap) >= 3 or (len(overlap) >= 2 and current_h == prev_h):
+                    if prev["slug"] not in content and prev["file"] not in content:
+                        warnings.append(
+                            f"중복 주제 검토 권장: '{current_h}' 주제는 이미 [{prev['slug']}]({prev['title']})에서 다루었습니다. "
+                            f"내용 중복 서술 대신 이전 포스트 링크([링크](/blog/{prev['slug']})) 인용 및 당일 신규 아키텍처(Delta) 중심으로 작성을 권장합니다."
+                        )
+    return warnings
+
+
 def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]:
     """마크다운 파일 전체 무결성 검증 (하드 에러와 소프트 경고 분리)"""
     if not file_path.exists():
@@ -244,6 +317,9 @@ def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]
     cliche_errors, cliche_warnings = check_ai_cliches(content)
     hard_errors.extend(cliche_errors)
     soft_warnings.extend(cliche_warnings)
+
+    topic_warnings = check_duplicate_topics(content, file_path)
+    soft_warnings.extend(topic_warnings)
 
     is_valid = len(hard_errors) == 0
     return is_valid, hard_errors, soft_warnings
@@ -364,6 +440,16 @@ def main():
         print(f"=== 미작성 대기 타겟 ({len(pending)}건) ===")
         for idx, item in enumerate(pending, 1):
             print(f"[{idx}] {item['type'].upper()} | 소스: {item['path']} -> 대상: {item['expected_file']}")
+        sys.exit(0)
+
+    if arg == "--scan-topics":
+        repo_root = Path(__file__).resolve().parent.parent
+        ledger = scan_all_topics(repo_root)
+        print(f"=== 발행된 블로그 포스트 및 핵심 주제 색인 ({len(ledger)}건) ===")
+        for item in ledger:
+            print(f"• [{item['slug']}] {item['title']}")
+            for t in item['topics']:
+                print(f"    - {t}")
         sys.exit(0)
 
     if arg in ("--fetch-curriculum", "--fetch-notion"):
