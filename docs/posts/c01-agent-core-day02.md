@@ -2,7 +2,7 @@
 title: "CSV 로그 결손 방어와 zip(strict=True) 예외 처리 및 I/O 분리 설계"
 slug: "c01-agent-core-day02"
 description: "zip(strict=True)를 활용한 손상된 CSV 로그 예외 처리와 로깅 체계 구축, 코드 최적화를 통한 화면 출력 책임 분리 기록"
-pubDate: 2026-08-30
+pubDate: 2026-08-26
 tags: ["Python", "Security Automation", "CSV Parsing", "Refactoring", "Logging"]
 category: "AI·보안 자동화"
 status: "published"
@@ -25,7 +25,9 @@ flowchart TD
     B -->|정상 파싱 성공| D["정형 로그 딕셔너리 리스트"]
     D --> E["find_suspects (실패 계정 및 IP 매핑)"]
     D --> F["analyze_events (match-case 이벤트 통계)"]
-    C & E & F --> G["print_summary_report (화면 리포트 전담)"]
+    C --> G["print_summary_report (화면 리포트 전담)"]
+    E --> G
+    F --> G
 ```
 
 데이터 파싱(`csv2dict`), 침해 지표 수집(`find_suspects`), 이벤트 통계 집계(`analyze_events`), 화면 출력(`print_summary_report`)이 상호 독립된 계층으로 연결된다.

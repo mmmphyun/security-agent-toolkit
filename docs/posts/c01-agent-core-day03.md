@@ -2,7 +2,7 @@
 title: "정규표현식 기반 서버 로그 파싱과 3대 보안 위협 탐지 엔진 설계"
 slug: "c01-agent-core-day03"
 description: "SSH 서버 비정형 로그 파싱과 re.compile 최적화, 무차별 대입·패스워드 스프레잉·심야 비인가 접속 3대 룰 엔진 모듈화 기록"
-pubDate: 2026-08-30
+pubDate: 2026-08-27
 tags: ["Python", "Security Automation", "Regex", "Threat Detection", "Refactoring"]
 category: "AI·보안 자동화"
 status: "published"
@@ -30,7 +30,9 @@ flowchart TD
     E --> F
     E --> G
     E --> H
-    F & G & H --> I["alerts.json 저장 (save_result)"]
+    F --> I["alerts.json 저장 (save_result)"]
+    G --> I
+    H --> I
     I --> J["print_summary_report (콘솔 요약)"]
 ```
 

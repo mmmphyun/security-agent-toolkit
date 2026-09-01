@@ -20,14 +20,13 @@ DevLog 에이전트 파이프라인은 Everything-as-Code 철학에 따라 별�
 
 ```mermaid
 flowchart TD
-    A["실습 소스코드 & 주석 (agent_core/)"] --> B["Antigravity 올인원 에이전트 (평일 17:10 크론)"]
-    C["커리큘럼 명세 허브"] -->|pipeline/harness.py --fetch-curriculum| B
-    B --> D["3단 대조 ADR 마크다운 초안 생성"]
-    D --> E["결정론적 하네스 검증 (harness.py)"]
-    E --> F["Astro 정적 빌드 호환성 검증"]
-    G{"사용자 컨펌 게이트웨이 (필수 검토)"}
-    F --> G
-    G -->|승인| H["Git 원자적 커밋 & 원격 푸시"]
+    A["수업 종료 & 커밋 푸시"] --> B["Antigravity 올인원 에이전트"]
+    B -->|"pipeline/harness.py --fetch-curriculum"| C["노션 강의 허브 & 실습 코드 인제스트"]
+    C --> D["Gemini 3.7 Flash 추론"]
+    D --> E["5단 ADR 블로그 초안 생성"]
+    E --> F["pipeline/harness.py 검증 (Linter)"]
+    F --> G["사용자 컨펌 게이트웨이 (대화형 검토)"]
+    G -->|"승인 완료"| H["Git 원자적 커밋 & 원격 푸시"]
     H --> I["GitHub Pages 정적 사이트 자동 배포"]
 ```
 
