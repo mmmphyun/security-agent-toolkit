@@ -63,8 +63,10 @@ def clean_markdown_fences(raw_text: str) -> str:
 
 
 
-# 공인 기술 약어 및 프레임워크/도구 고유명사 화이트리스트 (괄호 병기 허용)
-ALLOWED_ENGLISH_ABBREVIATIONS = {
+import json
+
+# 기본 내장 공인 약어 및 CS 용어 화이트리스트 (설정 파일 누락 시 fallback)
+DEFAULT_WHITELIST = {
     "API", "LLM", "JSON", "JSONL", "JSON Schema", "DB", "R2", "CDN", "SSOT", "HITL", "OIDC", "STS",
     "SPOF", "TTL", "GCP", "AWS", "REST", "mTLS", "eBPF", "Wasm", "gVisor", "OS", "UI",
     "CLI", "IP", "TCP", "UDP", "HTTP", "HTTPS", "TLS", "SSL", "SQL", "NoSQL", "AST",
@@ -78,6 +80,25 @@ ALLOWED_ENGLISH_ABBREVIATIONS = {
     "Requests", "Pytest", "Part 1", "Part 2", "Part 3", "v1", "v2", "v3",
 }
 
+# 대문자 2~6자리 순수 기술 약어 패턴 (예: JWT, AES, RSA, RFC 등 자동 허용)
+ACRONYM_PATTERN = re.compile(r"^[A-Z0-9]{2,6}$")
+
+
+def load_whitelist() -> set[str]:
+    """pipeline/config/whitelist.json에서 확장 화이트리스트 로드"""
+    config_file = Path(__file__).resolve().parent / "config" / "whitelist.json"
+    whitelist = set(DEFAULT_WHITELIST)
+    if config_file.exists():
+        try:
+            data = json.loads(config_file.read_text(encoding="utf-8"))
+            for key in ("abbreviations", "frameworks_and_tools"):
+                if key in data and isinstance(data[key], list):
+                    whitelist.update(data[key])
+        except (json.JSONDecodeError, OSError):
+            pass
+    return whitelist
+
+
 # 주의가 필요한 AI 양산형 복합 대구 패턴 (Soft Warning 대상)
 AI_COMPLEX_CLICHE_PATTERNS = [
     re.compile(r"뿐만 아니라.+도.+을 통해"),
@@ -89,9 +110,7 @@ AI_COMPLEX_CLICHE_PATTERNS = [
 
 def strip_code_blocks(content: str) -> str:
     """코드 블록(```...```) 및 인라인 코드(`...`)를 제거한 순수 마크다운 텍스트 반환"""
-    # 1. 펜스드 코드 블록 제거
     text_without_blocks = re.sub(r"```.*?```", "", content, flags=re.DOTALL)
-    # 2. 인라인 백틱 코드 제거
     text_without_inline = re.sub(r"`[^`\n]+`", "", text_without_blocks)
     return text_without_inline
 
@@ -106,22 +125,29 @@ def check_emojis(content: str) -> list[str]:
     return errors
 
 
+def is_allowed_english(text: str, whitelist: set[str]) -> bool:
+    """영단어가 공인 약어, 화이트리스트, 또는 정규식 약어 패턴에 부합하는지 검증"""
+    stripped = text.strip()
+    if stripped in whitelist or ACRONYM_PATTERN.match(stripped):
+        return True
+
+    # 공백이나 특수문자로 구분된 복합 토큰 분할 검사
+    tokens = [t.strip() for t in re.split(r"[\s\-\/\&]+", stripped) if t.strip()]
+    return bool(tokens and all(t in whitelist or ACRONYM_PATTERN.match(t) for t in tokens))
+
+
 def check_parentheses_english(content: str) -> list[str]:
     """한글 뒤 불필요한 영단어 괄호 병기(예: 경보(Alert), 도구(Tool)) 검출 (하드 에러)"""
     errors = []
     pure_text = strip_code_blocks(content)
+    whitelist = load_whitelist()
 
-    # 한글 단어 바로 뒤의 괄호 영문 매칭: e.g. 경보(Alert), 도구(Tool), 관제(Autonomous Security Desk)
     pattern = re.compile(r"([가-힣]+)\s*\(([A-Za-z0-9\s_\-\/\.\&]+)\)")
     for match in pattern.finditer(pure_text):
         hangul_word = match.group(1)
         english_inside = match.group(2).strip()
 
-        # 화이트리스트에 정확히 일치하거나 모든 토큰이 화이트리스트 약어인 경우 허용
-        tokens = [t.strip() for t in re.split(r"[\s\-\/\&]+", english_inside) if t.strip()]
-        if english_inside in ALLOWED_ENGLISH_ABBREVIATIONS:
-            continue
-        if tokens and all(t in ALLOWED_ENGLISH_ABBREVIATIONS for t in tokens):
+        if is_allowed_english(english_inside, whitelist):
             continue
 
         errors.append(

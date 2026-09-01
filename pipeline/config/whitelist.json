@@ -1,0 +1,17 @@
+{
+  "abbreviations": [
+    "API", "LLM", "JSON", "JSONL", "JSON Schema", "DB", "R2", "CDN", "SSOT", "HITL",
+    "OIDC", "STS", "SPOF", "TTL", "GCP", "AWS", "REST", "mTLS", "eBPF", "Wasm", "gVisor",
+    "OS", "UI", "CLI", "IP", "TCP", "UDP", "HTTP", "HTTPS", "TLS", "SSL", "SQL", "NoSQL",
+    "AST", "CI", "CD", "PR", "SOC", "SIEM", "SOAR", "XDR", "EDR", "IDS", "IPS", "WAF",
+    "CVE", "CWE", "OWASP", "PoC", "LRU", "LFU", "OOM", "CPU", "RAM", "SSD", "HDD", "IO",
+    "I/O", "FIFO", "DNS", "SSH", "FTP", "SMTP", "VPN", "VPC", "NAT", "IAM", "RBAC", "ABAC",
+    "RTT", "Zero Trust", "Keep-Alive", "Fail-Open", "Fail-Safe", "Circuit Breaker"
+  ],
+  "frameworks_and_tools": [
+    "K8s", "Kubernetes", "Docker", "Redis", "Kafka", "RabbitMQ", "PostgreSQL", "MySQL",
+    "MongoDB", "Elasticsearch", "SQLite", "FastAPI", "Flask", "Django", "Express",
+    "NestJS", "Next.js", "React", "Vue", "Astro", "Pydantic", "SQLAlchemy", "Aiohttp",
+    "Requests", "Pytest", "Part 1", "Part 2", "Part 3", "v1", "v2", "v3"
+  ]
+}
