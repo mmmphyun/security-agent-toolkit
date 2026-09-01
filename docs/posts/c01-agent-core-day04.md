@@ -2,7 +2,7 @@
 title: "외부 REST API 연동을 통한 위협 IP 인텔리전스 인리치먼트 파이프라인 설계"
 slug: "c01-agent-core-day04"
 description: "requests 기반 실시간 IP 지리 정보 조회, HTTP 타임아웃 방어 및 멱등성을 고려한 경보 데이터 보강 계층 리팩터링 기록"
-pubDate: 2026-08-30
+pubDate: 2026-08-28
 tags: ["Python", "Security Automation", "Threat Intelligence", "REST API", "Refactoring"]
 category: "AI·보안 자동화"
 status: "published"
@@ -22,11 +22,12 @@ Day 04 실습 산출물은 `request.py`와 `request_llm.py`로 구성되며, 로
 flowchart LR
     A["로컬 경보 파일 (alerts.json)"] --> B["load_alerts_data (JSON 파싱)"]
     B --> C{"IP 필드 존재 검사"}
-    C -->|IP 없음 (brute_force)| D["조회 건너뜀 (기존 객체 유지)"]
-    C -->|IP 존재 (spraying / night)| E["fetch_ip_info (REST API 통신)"]
-    E -->|HTTP GET /json/IP| F["IP-API 서비스"]
-    F -->|country, isp 수신| G["단일 경보 객체 보강"]
-    D & G --> H["enriched_alerts.json 저장"]
+    C -->|"IP 없음 (brute_force)"| D["조회 건너뜀 (기존 객체 유지)"]
+    C -->|"IP 존재 (spraying / night)"| E["fetch_ip_info (REST API 통신)"]
+    E -->|"HTTP GET /json/IP"| F["IP-API 서비스"]
+    F -->|"country, isp 수신"| G["단일 경보 객체 보강"]
+    D --> H["enriched_alerts.json 저장"]
+    G --> H
     H --> I["print_summary_report (추적 로그 출력)"]
 ```
 

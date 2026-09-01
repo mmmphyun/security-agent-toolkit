@@ -2,7 +2,7 @@
 title: "Flask 웹훅과 Schedule 기반 실시간 보안 경보 수신 및 디스패처 서버 설계"
 slug: "c01-agent-core-day05"
 description: "고차 함수와 콜백 기반 스케줄러, Flask 동적 라우트 추출(app.url_map), 웹훅 I/O 병목 분석 및 단독 설계 의사결정 기록"
-pubDate: 2026-08-30
+pubDate: 2026-08-29
 tags: ["Python", "Security Automation", "Flask", "Schedule", "Webhook", "Architecture"]
 category: "AI·보안 자동화"
 status: "published"
@@ -21,10 +21,10 @@ Day 05 실습 산출물은 경보 발송자(`05_alert_dispatcher.py`)와 웹훅 
 ```mermaid
 flowchart LR
     A["보강된 경보 (enriched_alerts.json)"] --> B["05_alert_dispatcher.py (전송기)"]
-    B -->|HTTP POST /alert| C["04_webhook_receiver.py (Flask 서버: 5001)"]
+    B -->|"HTTP POST /alert"| C["04_webhook_receiver.py (Flask 서버: 5001)"]
     C --> D["received_alerts.json 저장 (영구 적재)"]
     C --> E["콘솔 [수신] 및 출처 실시간 출력"]
-    F["01_trigger_scheduler.py"] -.->|주기적 모니터링| A
+    F["01_trigger_scheduler.py"] -.->|"주기적 모니터링"| A
 ```
 
 전송기는 경보 목록을 순회하며 웹훅 엔드포인트로 비동기 성격의 POST 요청을 발송하고, 수신 서버는 페이로드를 파싱하여 즉시 디스크에 저장한 뒤 상태를 반환한다.

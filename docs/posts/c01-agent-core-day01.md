@@ -2,7 +2,7 @@
 title: "문자열 파싱 정규화와 Counter를 활용한 무차별 대입 공격 탐지기 설계"
 slug: "c01-agent-core-day01"
 description: "가변 공백 정규화와 collections.Counter를 활용하여 무차별 대입 공격 의심 계정을 추출하고 단일 책임 원칙으로 분리한 실습 기록"
-pubDate: 2026-08-30
+pubDate: 2026-08-25
 tags: ["Python", "Security Automation", "Log Parsing", "Counter"]
 category: "AI·보안 자동화"
 status: "published"
