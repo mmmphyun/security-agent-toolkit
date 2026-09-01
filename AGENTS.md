@@ -87,8 +87,11 @@ AI가 블로그 포스트를 생성할 때는 반드시 다음 5가지 핵심 �
      `uv run python pipeline/harness.py --fetch-curriculum <course_id> <day_id>`
    - 대상 디렉토리(`agent_core/dayXX/`)의 실습 소스코드(`*practice.py`, `*llm.py`, `0X_*.py` 등), 주석, `logs/` 데이터를 함께 수집합니다.
 2. **자율 프로젝트 타겟(PROJECT):**
-   - 프로젝트 메모와 연결된 레포지토리를 자동 인제스트합니다:
+   - **`exploring-codebases` & `searching-codebases` 스킬 프로토콜 필수 적용:**
+   - 프로젝트 메모와 연결된 원격 레포지토리를 자동 인제스트하고 구조를 분석합니다:
      `uv run python pipeline/harness.py --fetch-project <project_name> <note_file>`
+   - `exploring-codebases` 프로토콜에 따라 프로젝트 설정(`docker-compose.yml`, `requirements.txt`), 엔트리포인트(`main.py`), 디렉토리 뼈대 맵 및 핵심 데이터 라이프사이클을 도출합니다.
+   - `searching-codebases` 프로토콜에 따라 데코레이터(`@router.get`), 핵심 클래스, 호출 체인을 정밀 슬라이싱하여 실제 소스코드와 메모 내용을 교차검증합니다.
 3. **코드 주석 및 리서치 메모의 3단계 유동적 분류 및 배치:**
    - '새로운 개념/원리 메모 주석' -> `## 1. 오늘의 학습 개념 요약`의 본문으로 배치.
    - '설계 고민/문제의식 주석' -> `## 3. 기본 구현의 한계점` 및 `## 4. 엔지니어링 의사결정 및 리팩터링`의 근거로 배치.
