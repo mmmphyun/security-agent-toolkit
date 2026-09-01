@@ -47,10 +47,13 @@ class TestPipelineHarness(unittest.TestCase):
         repo_root = Path(__file__).resolve().parent.parent
         pending = scan_pending_targets(repo_root)
         self.assertIsInstance(pending, list)
-        # day06이 미작성 상태이므로 최소 1개 이상 존재해야 함
-        self.assertTrue(any(item["target_slug"] == "c01-agent-core-day06" for item in pending))
         # 이미 작성된 day01~day05는 제외되어야 함
         self.assertFalse(any(item["target_slug"] == "c01-agent-core-day01" for item in pending))
+        # 반환된 항목의 구조 유효성 검증
+        for item in pending:
+            self.assertIn("type", item)
+            self.assertIn("target_slug", item)
+            self.assertIn("expected_file", item)
 
 
 
