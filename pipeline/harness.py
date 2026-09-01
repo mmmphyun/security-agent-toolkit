@@ -5,9 +5,12 @@ pipeline.harness
 이모지 배제, 필수 ADR 섹션 존재 여부, 파일 링크 실존 여부, AI 상투어 등을 결정론적으로 검증합니다.
 """
 
+import json
 import re
 import sys
 from pathlib import Path
+
+import yaml
 
 # 순수 이모지 및 특수 픽토그램 유니코드 패턴 (한글 음절 및 CJK 완전 배제)
 EMOJI_PATTERN = re.compile(
@@ -441,6 +444,22 @@ def scan_pending_targets(repo_root: Path) -> list[dict[str, str]]:
             for md_file in sorted(proj_dir.glob("*.md")):
                 if md_file.name.lower() == "readme.md":
                     continue
+
+                # Frontmatter 내 status: draft 또는 draft: true 선언 시 대기 타겟에서 배제
+                try:
+                    content = md_file.read_text(encoding="utf-8").lstrip("\ufeff \t\r\n")
+                    if content.startswith("---"):
+                        parts = content.split("---", 2)
+                        if len(parts) >= 3:
+                            fm = yaml.safe_load(parts[1])
+                            if isinstance(fm, dict):
+                                if fm.get("draft") is True or fm.get("ignore") is True:
+                                    continue
+                                if str(fm.get("status", "")).lower() in ("draft", "ignore", "wip"):
+                                    continue
+                except Exception:
+                    pass
+
                 target_slug = f"proj-{proj_name.replace('_', '-')}-{md_file.stem.replace('_', '-')}"
                 if target_slug not in existing_slugs:
                     pending.append({
