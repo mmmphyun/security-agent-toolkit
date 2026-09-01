@@ -207,6 +207,41 @@ def check_mermaid(content: str) -> list[str]:
     return errors
 
 
+def check_code_paths(content: str, current_file: Path) -> list[str]:
+    """코드 블록 주석이나 설명에 명시된 파일 경로가 실제 레포지토리 또는 캐시 레포에 존재하는지 검증"""
+    errors = []
+    repo_root = current_file.resolve().parent.parent.parent
+
+    # 코드 블록 내부의 파일 경로 주석 패턴 탐색 (예: # ... (src/bot/cogs/sync.py), // path/to/file 등)
+    code_blocks = re.findall(r"```(?:\w+)?\s*\n(.*?)\n```", content, re.DOTALL)
+    for block in code_blocks:
+        first_few_lines = "\n".join(block.strip().splitlines()[:3])
+        # 주석 형태의 파일 경로 매칭 (src/..., agent_core/..., projects/...)
+        matched_paths = re.findall(r"(?:#|//|\*)\s*.*?([a-zA-Z0-9_\-\./\\]+\.(?:py|ts|js|tsx|jsx|go|rs|java|json|yaml|yml))", first_few_lines)
+        for raw_path in matched_paths:
+            clean_path = raw_path.strip().replace("\\", "/")
+            if "/" not in clean_path or clean_path.startswith("http") or clean_path.startswith("."):
+                continue
+
+            # 로컬 레포지토리 내 확인
+            local_exists = (repo_root / clean_path).exists()
+            # 캐시된 원격 프로젝트 레포지토리 내 확인 (.cache/repos/*/<clean_path>)
+            cache_exists = False
+            cache_repos_dir = repo_root / ".cache" / "repos"
+            if cache_repos_dir.exists():
+                for repo_dir in cache_repos_dir.iterdir():
+                    if repo_dir.is_dir() and (repo_dir / clean_path).exists():
+                        cache_exists = True
+                        break
+
+            if not local_exists and not cache_exists:
+                errors.append(
+                    f"존재하지 않는 가상 소스코드 경로 감지: '{clean_path}'. "
+                    f"실제 레포지토리에 존재하는 원본 파일 경로를 사용하거나 가상 코드 창작을 배제하십시오."
+                )
+    return errors
+
+
 def check_ai_cliches(content: str) -> tuple[list[str], list[str]]:
     """AI 상투어(하드 에러) 및 복합 대구 패턴(소프트 경고) 검사"""
     hard_errors = []
@@ -313,6 +348,7 @@ def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]
     hard_errors.extend(check_parentheses_english(content))
     hard_errors.extend(check_required_sections(content))
     hard_errors.extend(check_mermaid(content))
+    hard_errors.extend(check_code_paths(content, file_path))
 
     cliche_errors, cliche_warnings = check_ai_cliches(content)
     hard_errors.extend(cliche_errors)
