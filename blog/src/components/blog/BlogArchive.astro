@@ -248,7 +248,13 @@ const networkLinks = Array.from(edgeMap.values());
                   {post.data.heroImage ? (
                     <img src={toEmbeddableImageUrl(post.data.heroImage)} alt="" loading="lazy" />
                   ) : (
-                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <span>{
+                      post.data.slug?.match(/day(\d+)/i)
+                        ? `DAY ${post.data.slug.match(/day(\d+)/i)[1]}`
+                        : (post.data.slug?.startsWith("proj-") || category.startsWith("프로젝트"))
+                          ? "PROJ"
+                          : String(index + 1).padStart(2, "0")
+                    }</span>
                   )}
                 </a>
                 <div class="post-card__body">
@@ -265,6 +271,12 @@ const networkLinks = Array.from(edgeMap.values());
               </article>
             ))}
           </div>
+
+          <nav class="bento-pagination" data-bento-pagination aria-label="Page navigation" hidden>
+            <button type="button" class="bento-page-btn" data-page-prev aria-label="이전 페이지">이전</button>
+            <div class="bento-page-numbers" data-page-numbers></div>
+            <button type="button" class="bento-page-btn" data-page-next aria-label="다음 페이지">다음</button>
+          </nav>
 
           <div class="post-list" data-layout-view="list" hidden>
             {postsForPage.map(({ post, index, tags, tagList, categoryValue, key, url }) => (
@@ -395,113 +407,181 @@ const networkLinks = Array.from(edgeMap.values());
       const networkPreview = root?.querySelector("[data-network-preview]");
       const networkLinks = JSON.parse(network?.dataset.networkLinks ?? "[]");
       const postGrid = root?.querySelector("[data-post-grid]");
+      const bentoPagination = root?.querySelector("[data-bento-pagination]");
+      const pagePrevBtn = root?.querySelector("[data-page-prev]");
+      const pageNextBtn = root?.querySelector("[data-page-next]");
+      const pageNumbersContainer = root?.querySelector("[data-page-numbers]");
       const tagCloud = root?.querySelector("[data-tag-cloud]");
       const tagCloudMore = root?.querySelector("[data-tag-cloud-more]");
       const listLoadMore = root?.querySelector("[data-list-load-more]");
+      const categoryTabButtons = Array.from(document.querySelectorAll("[data-category-tab]"));
+      const BENTO_PAGE_SIZE = 7;
       const LIST_BATCH_SIZE = 12;
       let listLimit = LIST_BATCH_SIZE;
       let activeTag = root?.dataset.initialTag ?? "";
       let activeCategory = "";
       let activeLayout = "bento";
       let activeView = root?.dataset.initialView ?? "posts";
+      let currentPage = 1;
 
-      function getTagList(node) {
-        return (node.dataset.postTags ?? "").split("|").filter(Boolean);
+      function readUrlState() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlCat = urlParams.get("category");
+        const urlTag = urlParams.get("tag");
+        const urlPage = parseInt(urlParams.get("page") || "1", 10);
+        if (urlCat) activeCategory = urlCat.toLowerCase();
+        if (urlTag) activeTag = urlTag;
+        if (!isNaN(urlPage) && urlPage >= 1) currentPage = urlPage;
       }
 
-      function getCategoryHeading(category) {
+      function updateUrlState() {
+        const params = new URLSearchParams();
+        if (activeCategory) params.set("category", activeCategory);
+        if (activeTag) params.set("tag", activeTag);
+        if (currentPage > 1) params.set("page", String(currentPage));
+        const newQuery = params.toString();
+        const newUrl = newQuery ? `${window.location.pathname}?${newQuery}` : window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
+
+      function getTagList(node: Element) {
+        return ((node as HTMLElement).dataset.postTags ?? "").split("|").filter(Boolean);
+      }
+
+      function getCategoryHeading(category: string) {
         return category === "uncategorized" ? "&#xBBF8;&#xBD84;&#xB958;" : category;
       }
 
       function syncTagModeLayout() {
         const inTagMode = activeView === "tags";
         layoutButtons.forEach((button) => {
-          if (button.dataset.layoutButton === "network") button.hidden = inTagMode;
+          if ((button as HTMLElement).dataset.layoutButton === "network") (button as HTMLElement).hidden = inTagMode;
         });
         if (inTagMode && activeLayout === "network") setLayout("bento");
       }
 
-      function setView(view) {
+      function setView(view: string) {
         activeView = view;
-        if (tagView) tagView.hidden = view !== "tags";
+        if (tagView) (tagView as HTMLElement).hidden = view !== "tags";
         viewButtons.forEach((button) => {
-          button.classList.toggle("blog-tab--active", button.dataset.viewButton === view);
+          button.classList.toggle("blog-tab--active", (button as HTMLElement).dataset.viewButton === view);
         });
         syncTagModeLayout();
       }
 
-      function setLayout(layout) {
+      function setLayout(layout: string) {
         if (activeView === "tags" && layout === "network") return;
         activeLayout = layout;
         layoutViews.forEach((view) => {
-          view.hidden = view.dataset.layoutView !== layout;
+          (view as HTMLElement).hidden = (view as HTMLElement).dataset.layoutView !== layout;
         });
         layoutButtons.forEach((button) => {
-          button.classList.toggle("view-switcher__button--active", button.dataset.layoutButton === layout);
+          button.classList.toggle("view-switcher__button--active", (button as HTMLElement).dataset.layoutButton === layout);
         });
         applyFilters(false);
         if (layout === "network") requestAnimationFrame(layoutNetwork);
       }
 
-      function syncPostReplica(key, matched) {
+      function syncPostReplica(key: string, matched: boolean) {
         listItems.forEach((item) => {
-          if (item.dataset.postKey === key) item.hidden = !matched;
+          if ((item as HTMLElement).dataset.postKey === key) (item as HTMLElement).hidden = !matched;
         });
         networkPostNodes.forEach((node) => {
-          if (node.dataset.postKey === key) node.hidden = !matched;
+          if ((node as HTMLElement).dataset.postKey === key) (node as HTMLElement).hidden = !matched;
         });
       }
 
-      function applyFilters(resetList = true) {
-        if (resetList) listLimit = LIST_BATCH_SIZE;
+      function applyFilters(resetPage = false) {
+        if (resetPage) currentPage = 1;
+        listLimit = LIST_BATCH_SIZE;
         const query = input?.value.trim().toLowerCase() ?? "";
         const shouldShowPosts = activeView === "posts" || activeView === "tags";
-        const matchedCards = [];
+        const matchedCards: HTMLElement[] = [];
 
         cards.forEach((card) => {
-          const title = card.dataset.postTitle ?? "";
-          const desc = card.dataset.postDesc ?? "";
-          const tags = getTagList(card);
+          const el = card as HTMLElement;
+          const title = el.dataset.postTitle ?? "";
+          const desc = el.dataset.postDesc ?? "";
+          const tags = getTagList(el);
           const textMatched = !query || `${title} ${desc} ${tags.join(" ")}`.includes(query);
           const tagMatched = !activeTag || tags.includes(activeTag);
-          const postCategory = card.dataset.postCategory ?? "";
+          const postCategory = el.dataset.postCategory ?? "";
           const categoryMatched = !activeCategory || postCategory === activeCategory || postCategory.startsWith(`${activeCategory}/`);
-          if (shouldShowPosts && textMatched && tagMatched && categoryMatched) matchedCards.push(card);
+          if (shouldShowPosts && textMatched && tagMatched && categoryMatched) matchedCards.push(el);
         });
 
-        const bentoCards = matchedCards.slice(0, 5);
+        const totalPages = Math.ceil(matchedCards.length / BENTO_PAGE_SIZE) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        const startIndex = (currentPage - 1) * BENTO_PAGE_SIZE;
+        const bentoCards = matchedCards.slice(startIndex, startIndex + BENTO_PAGE_SIZE);
         const bentoKeys = new Set(bentoCards.map((card) => card.dataset.postKey));
         const matchedKeys = new Set(matchedCards.map((card) => card.dataset.postKey));
-        const useFeaturedCard = !activeCategory && !query;
-        if (postGrid) postGrid.dataset.bentoCount = String(bentoCards.length);
+        const useFeaturedCard = !activeCategory && !query && currentPage === 1;
+        if (postGrid) (postGrid as HTMLElement).dataset.bentoCount = String(bentoCards.length);
 
         cards.forEach((card) => {
-          const slot = bentoCards.indexOf(card);
-          card.hidden = !bentoKeys.has(card.dataset.postKey);
-          card.dataset.bentoSlot = slot >= 0 ? String(slot + 1) : "";
-          card.classList.toggle("post-card--feature", useFeaturedCard && slot === 0);
+          const el = card as HTMLElement;
+          const slot = bentoCards.indexOf(el);
+          el.hidden = !bentoKeys.has(el.dataset.postKey);
+          el.dataset.bentoSlot = slot >= 0 ? String(slot + 1) : "";
+          el.classList.toggle("post-card--feature", useFeaturedCard && slot === 0);
         });
 
+        // Bento 7개 페이지네이션 렌더링
+        if (bentoPagination) {
+          const showPagination = activeLayout === "bento" && totalPages > 1 && shouldShowPosts;
+          (bentoPagination as HTMLElement).hidden = !showPagination;
+          if (showPagination) {
+            if (pagePrevBtn) (pagePrevBtn as HTMLButtonElement).disabled = currentPage <= 1;
+            if (pageNextBtn) (pageNextBtn as HTMLButtonElement).disabled = currentPage >= totalPages;
+            if (pageNumbersContainer) {
+              let html = "";
+              for (let i = 1; i <= totalPages; i++) {
+                const activeClass = i === currentPage ? " bento-page-num--active" : "";
+                html += `<button type="button" class="bento-page-num${activeClass}" data-page-target="${i}">${i}</button>`;
+              }
+              pageNumbersContainer.innerHTML = html;
+              pageNumbersContainer.querySelectorAll("[data-page-target]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                  const target = parseInt((btn as HTMLElement).dataset.pageTarget || "1", 10);
+                  if (target !== currentPage) {
+                    currentPage = target;
+                    applyFilters(false);
+                    updateUrlState();
+                    postGrid?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                });
+              });
+            }
+          }
+        }
+
         networkPostNodes.forEach((node) => {
-          node.hidden = !matchedKeys.has(node.dataset.postKey);
+          const el = node as HTMLElement;
+          el.hidden = !matchedKeys.has(el.dataset.postKey);
         });
 
         let renderedList = 0;
         listItems.forEach((item) => {
-          const matched = matchedKeys.has(item.dataset.postKey);
+          const el = item as HTMLElement;
+          const matched = matchedKeys.has(el.dataset.postKey);
           const visible = matched && renderedList < listLimit;
-          item.hidden = !visible;
+          el.hidden = !visible;
           if (visible) renderedList += 1;
         });
 
         tagButtons.forEach((button) => {
-          button.classList.toggle("tag-pill--active", (button.dataset.tagFilter ?? "") === activeTag);
+          button.classList.toggle("tag-pill--active", ((button as HTMLElement).dataset.tagFilter ?? "") === activeTag);
         });
         categoryButtons.forEach((button) => {
-          button.classList.toggle("tag-pill--active", (button.dataset.categoryFilter ?? "") === activeCategory);
+          button.classList.toggle("tag-pill--active", ((button as HTMLElement).dataset.categoryFilter ?? "") === activeCategory);
+        });
+        categoryTabButtons.forEach((t) => {
+          const val = t.getAttribute("data-category-tab")?.toLowerCase();
+          t.classList.toggle("blog-tab--active", (val === "all" && !activeCategory) || val === activeCategory);
         });
 
-        if (postView) postView.hidden = !shouldShowPosts;
+        if (postView) (postView as HTMLElement).hidden = !shouldShowPosts;
         if (postHeading) {
           postHeading.innerHTML = activeTag
             ? `#${activeTag} <span>${matchedCards.length}</span>`
@@ -509,36 +589,37 @@ const networkLinks = Array.from(edgeMap.values());
               ? `${getCategoryHeading(activeCategory)} <span>${matchedCards.length}</span>`
               : `&#xC804;&#xCCB4; &#xAE00; <span>${matchedCards.length}</span>`;
         }
-        if (empty) empty.hidden = !shouldShowPosts || matchedCards.length !== 0;
+        if (empty) (empty as HTMLElement).hidden = !shouldShowPosts || matchedCards.length !== 0;
         if (count) {
-          count.hidden = !shouldShowPosts || (!query && !activeTag && !activeCategory);
+          (count as HTMLElement).hidden = !shouldShowPosts || (!query && !activeTag && !activeCategory);
           count.textContent = `${matchedCards.length} matched`;
         }
-        if (listLoadMore) listLoadMore.hidden = activeLayout !== "list" || renderedList >= matchedCards.length;
+        if (listLoadMore) (listLoadMore as HTMLElement).hidden = activeLayout !== "list" || renderedList >= matchedCards.length;
         if (activeLayout === "network") requestAnimationFrame(layoutNetwork);
       }
 
       function layoutNetwork() {
         if (!network || !networkLines) return;
-        const nodes = networkPostNodes.filter((node) => !node.hidden);
+        const nodes = networkPostNodes.filter((node) => !(node as HTMLElement).hidden);
         const width = network.clientWidth;
         const height = network.clientHeight;
         const centerX = width / 2;
         const centerY = height / 2;
         const radiusX = Math.max(120, width * 0.36);
         const radiusY = Math.max(112, height * 0.32);
-        const nodeByKey = new Map(nodes.map((node) => [node.dataset.postKey, node]));
+        const nodeByKey = new Map(nodes.map((node) => [(node as HTMLElement).dataset.postKey, node as HTMLElement]));
 
         nodes.forEach((node, index) => {
+          const el = node as HTMLElement;
           const angle = nodes.length === 1 ? -Math.PI / 2 : -Math.PI / 2 + (index * Math.PI * 2) / nodes.length;
           const left = centerX + Math.cos(angle) * radiusX;
           const top = centerY + Math.sin(angle) * radiusY;
-          node.style.left = `${left}px`;
-          node.style.top = `${top}px`;
+          el.style.left = `${left}px`;
+          el.style.top = `${top}px`;
         });
 
-        const lines = [];
-        networkLinks.forEach((link) => {
+        const lines: string[] = [];
+        networkLinks.forEach((link: { source: string; target: string; type: string }) => {
           const source = nodeByKey.get(link.source);
           const target = nodeByKey.get(link.target);
           if (!source || !target) return;
@@ -553,15 +634,16 @@ const networkLinks = Array.from(edgeMap.values());
         networkLines.innerHTML = lines.join("");
       }
 
-      function showPreview(node) {
+      function showPreview(node: Element) {
         if (!networkPreview || !network) return;
-        const key = node.dataset.postKey;
-        const related = networkLinks.filter((link) => link.source === key || link.target === key).length;
-        networkPreview.innerHTML = `<strong>${node.dataset.title ?? ""}</strong><span>${node.dataset.date ?? ""} - ${related} links</span><p>${node.dataset.desc ?? ""}</p><em>${node.dataset.tags ?? "untagged"}</em>`;
-        networkPreview.hidden = false;
-        networkPreview.style.left = node.style.left;
-        networkPreview.style.top = node.style.top;
-        network.querySelectorAll("[data-network-post]").forEach((item) => item.classList.toggle("network-node--dimmed", item.dataset.postKey !== key));
+        const el = node as HTMLElement;
+        const key = el.dataset.postKey;
+        const related = networkLinks.filter((link: { source?: string; target?: string }) => link.source === key || link.target === key).length;
+        networkPreview.innerHTML = `<strong>${el.dataset.title ?? ""}</strong><span>${el.dataset.date ?? ""} - ${related} links</span><p>${el.dataset.desc ?? ""}</p><em>${el.dataset.tags ?? "untagged"}</em>`;
+        (networkPreview as HTMLElement).hidden = false;
+        (networkPreview as HTMLElement).style.left = el.style.left;
+        (networkPreview as HTMLElement).style.top = el.style.top;
+        network.querySelectorAll("[data-network-post]").forEach((item) => item.classList.toggle("network-node--dimmed", (item as HTMLElement).dataset.postKey !== key));
         network.querySelectorAll("line").forEach((line) => {
           const connected = line.dataset.source === key || line.dataset.target === key;
           line.classList.toggle("network-line--active", connected);
@@ -573,20 +655,39 @@ const networkLinks = Array.from(edgeMap.values());
       }
 
       function hidePreview() {
-        if (networkPreview) networkPreview.hidden = true;
+        if (networkPreview) (networkPreview as HTMLElement).hidden = true;
         network?.querySelectorAll("[data-network-post]").forEach((item) => item.classList.remove("network-node--dimmed"));
         network?.querySelectorAll("line").forEach((line) => line.classList.remove("network-line--active"));
       }
 
-      input?.addEventListener("input", applyFilters);
+      input?.addEventListener("input", () => {
+        applyFilters(true);
+        updateUrlState();
+      });
 
       layoutButtons.forEach((button) => {
-        button.addEventListener("click", () => setLayout(button.dataset.layoutButton ?? "bento"));
+        button.addEventListener("click", () => setLayout((button as HTMLElement).dataset.layoutButton ?? "bento"));
       });
 
       tagCloudMore?.addEventListener("click", () => {
         const expanded = tagCloud?.toggleAttribute("data-tag-cloud-expanded") ?? false;
         tagCloudMore.textContent = expanded ? "Show fewer tags" : "+ more tags";
+      });
+
+      pagePrevBtn?.addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage -= 1;
+          applyFilters(false);
+          updateUrlState();
+          postGrid?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+
+      pageNextBtn?.addEventListener("click", () => {
+        currentPage += 1;
+        applyFilters(false);
+        updateUrlState();
+        postGrid?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
 
       listLoadMore?.addEventListener("click", () => {
@@ -597,7 +698,7 @@ const networkLinks = Array.from(edgeMap.values());
       let listObserver: IntersectionObserver | undefined;
       if ("IntersectionObserver" in window && listLoadMore) {
         listObserver = new IntersectionObserver((entries) => {
-          if (entries.some((entry) => entry.isIntersecting) && !listLoadMore.hidden) {
+          if (entries.some((entry) => entry.isIntersecting) && !(listLoadMore as HTMLElement).hidden) {
             listLimit += LIST_BATCH_SIZE;
             applyFilters(false);
           }
@@ -605,29 +706,28 @@ const networkLinks = Array.from(edgeMap.values());
         listObserver.observe(listLoadMore);
       }
 
-      const categoryTabButtons = Array.from(document.querySelectorAll("[data-category-tab]"));
       categoryTabButtons.forEach((tab) => {
         tab.addEventListener("click", () => {
           const tabCategory = tab.getAttribute("data-category-tab") ?? "all";
           activeCategory = tabCategory === "all" ? "" : tabCategory.toLowerCase();
           activeTag = "";
+          currentPage = 1;
           categoryTabButtons.forEach((t) => t.classList.remove("blog-tab--active"));
           tab.classList.add("blog-tab--active");
           setView("posts");
-          applyFilters();
+          applyFilters(true);
+          updateUrlState();
         });
       });
 
       categoryButtons.forEach((button) => {
         button.addEventListener("click", () => {
-          activeCategory = button.dataset.categoryFilter ?? "";
+          activeCategory = (button as HTMLElement).dataset.categoryFilter ?? "";
           activeTag = "";
-          categoryTabButtons.forEach((t) => {
-            const val = t.getAttribute("data-category-tab")?.toLowerCase();
-            t.classList.toggle("blog-tab--active", (val === "all" && !activeCategory) || val === activeCategory);
-          });
+          currentPage = 1;
           setView("posts");
-          applyFilters();
+          applyFilters(true);
+          updateUrlState();
         });
       });
 
@@ -643,14 +743,22 @@ const networkLinks = Array.from(edgeMap.values());
       };
       window.addEventListener("resize", handleResize);
 
+      const handlePopState = () => {
+        readUrlState();
+        applyFilters(false);
+      };
+      window.addEventListener("popstate", handlePopState);
+
       disposeBlogArchive = () => {
         window.removeEventListener("resize", handleResize);
+        window.removeEventListener("popstate", handlePopState);
         listObserver?.disconnect();
       };
 
+      readUrlState();
       setView(activeView);
       setLayout("bento");
-      applyFilters();
+      applyFilters(false);
     }
 
     document.addEventListener("astro:before-swap", () => disposeBlogArchive());

@@ -565,6 +565,52 @@
   content: "#";
 }
 
+.bento-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 28px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.bento-page-btn,
+.bento-page-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--archive-border);
+  border-radius: 6px;
+  background: var(--archive-panel);
+  color: var(--archive-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.bento-page-btn:hover:not(:disabled),
+.bento-page-num:hover:not(.bento-page-num--active) {
+  border-color: var(--archive-teal);
+  color: var(--archive-teal);
+  background: var(--archive-panel-soft);
+}
+
+.bento-page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.bento-page-num--active {
+  border-color: var(--archive-teal);
+  background: var(--archive-teal);
+  color: #ffffff;
+}
+
 .post-list {
   display: grid;
   gap: 0;
