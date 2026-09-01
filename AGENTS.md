@@ -40,9 +40,9 @@
 - **일일 수업 실습 소스코드 커밋 규칙:**
   - 수업 종료 후 당일 실습 코드를 커밋할 때는 **`feat(<과목명>): Day XX <커리큘럼 허브의 당일 강의 제목>`** 형식을 준수합니다.
   - 예시: `feat(agent_core): Day 06 판단하는 관제 데스크 — LLM·AI 에이전트`
-- **단순 수정 및 Fast-Track 배포 규칙:**
-  - 1인 개발 및 학습 레포지토리이므로 불필요한 PR(Pull Request) 절차 없이, 하네스 검증 통과 후 `main` 브랜치에 직접 커밋/푸시하여 즉시 자동 배포(`GitHub Actions Pages`)합니다.
-  - `docs/posts/` 수정 시: `git commit -n -m "docs(blog): <수정내용>"` ➔ `git push origin main`
+- **브랜치 기반 PR 배포 규칙:**
+  - 원격 저장소의 브랜치 보호 규칙(Ruleset: PR 필수 및 CI 빌드 통과 의무)에 따라 `main` 직접 푸시를 금지합니다.
+  - 하네스 검증 통과 후 기능/포스트 작업 브랜치(`feat/...`)를 생성하여 푸시하고, GitHub CLI(`gh pr create`)를 통해 PR을 생성하여 자동 배포(`GitHub Actions Pages`) 파이프라인을 거칩니다.
 - **최소 작업 단위 커밋:** 기능/파일 변경 단위별로 쪼개어 커밋합니다.
 - **보안 검증:** 민감 정보(API 키, 개인정보 등) 및 `.gitignore` 대상 파일이 커밋에 포함되지 않도록 `git status` 및 `git diff`를 항상 사전 점검합니다.
 
