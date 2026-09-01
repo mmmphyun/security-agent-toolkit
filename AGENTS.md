@@ -79,7 +79,21 @@ AI가 블로그 포스트를 생성할 때는 반드시 다음 5가지 핵심 �
 1. 미작성 대기 타겟 목록 조회:
    `uv run python pipeline/harness.py --scan-pending`
 2. 대기 목록이 0건이면 "모든 실습 및 프로젝트가 이미 블로그 포스트로 작성되었습니다."를 출력하고 즉시 작업을 종료(Stop)합니다.
-3. 1건 이상일 경우, 가장 상단의 첫 번째 미작성 대상(예: `course_id='agent_core'`, `day_id='day06'`, `target_slug='c01-agent-core-day06'`, `expected_file='docs/posts/c01-agent-core-day06.md'`)을 이번 세션의 확정 타겟으로 선정한 후 즉시 서브에이전트(`invoke_subagent`)를 호출하여 2~4단계를 위임합니다.
+3. 1건 이상일 경우, 가장 상단의 첫 번째 미작성 대상(예: `course_id='agent_core'`, `day_id='day06'`, `target_slug='c01-agent-core-day06'`, `expected_file='docs/posts/c01-agent-core-day06.md'`)을 이번 세션의 확정 타겟으로 선정합니다.
+4. **서브에이전트 표준 프롬프트 주입 및 호출:**
+   메인 에이전트는 다음 표준 템플릿으로 서브에이전트(`invoke_subagent`)를 실행합니다:
+   ```text
+   [타겟]: {target_slug} ({target_type}: {path})
+   [필수 선행 로드]: 첫 턴에서 view_file로 다음 스킬 파일들을 반드시 먼저 호출하여 프로토콜을 로드하십시오.
+   1) exploring-codebases (C:/Users/User/.gemini/config/skills/exploring-codebases/SKILL.md)
+   2) searching-codebases (C:/Users/User/.gemini/config/skills/searching-codebases/SKILL.md)
+   3) humanize-korean (C:/Users/User/.gemini/config/skills/humanize-korean/SKILL.md)
+   [수행 과업]:
+   1. 컨텍스트 인제스트 및 소스코드 교차검증 (AGENTS.md 제6조 2단계)
+   2. 5단 ADR 구조 마크다운 초고 작성 및 괄호 영단어 병기 전면 배제 (3단계)
+   3. pipeline/harness.py 및 npm --prefix blog run build 자가 교정 완주 (4단계)
+   4. 검증 100% 통과 후 최종 초안 전문과 요약을 반환하고 종료.
+   ```
 
 ### 2단계. 멀티모달 컨텍스트 인제스트 (Zero Manual Effort - Subagent)
 1. **과목 실습 타겟(COURSE):**
@@ -104,6 +118,7 @@ AI가 블로그 포스트를 생성할 때는 반드시 다음 5가지 핵심 �
    - 3) 구현 및 최적화 코드 대조 (`*llm.py`가 없으면 주석 기반 단독 리팩터링으로 서술)
 2. **`humanize-korean` 스킬 규칙 적용:**
    - 유니코드 이모지 및 특수 아이콘 완전 금지
+   - **불필요한 괄호 영단어 병기 완전 배제** (단, API, LLM, JSON, SSOT 등 공인 대문자 약어는 허용)
    - 기계적 대구("~뿐만 아니라 ~도", "~를 통해") 및 AI 상투어 배제
    - 시니어 엔지니어링 테크니컬 라이팅 평어체(`~한다`, `~했다`, `~이다`) 유지
 3. **Mermaid 다이어그램 안전 규칙:**
@@ -116,6 +131,7 @@ AI가 블로그 포스트를 생성할 때는 반드시 다음 5가지 핵심 �
 ### 4단계. 결정론적 하네스 & Astro 블로그 빌드 자가 교정 (Self-Correction - Subagent)
 1. 하네스 무결성 검증:
    `uv run python pipeline/harness.py docs/posts/<target_slug>.md`
+   (이모지, 필수 헤더, 괄호 영단어 병기, Mermaid 문법 등 하드 에러 0건 필수).
 2. Astro 정적 빌드 호환성 검증:
    `npm --prefix blog run build`
 3. 하네스 위반이나 Astro 빌드 실패가 발생하면 100% 통과할 때까지 자체 수정 루프를 수행합니다.

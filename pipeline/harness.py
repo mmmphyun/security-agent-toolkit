@@ -63,6 +63,39 @@ def clean_markdown_fences(raw_text: str) -> str:
 
 
 
+# 공인 기술 약어 및 프레임워크/도구 고유명사 화이트리스트 (괄호 병기 허용)
+ALLOWED_ENGLISH_ABBREVIATIONS = {
+    "API", "LLM", "JSON", "JSONL", "JSON Schema", "DB", "R2", "CDN", "SSOT", "HITL", "OIDC", "STS",
+    "SPOF", "TTL", "GCP", "AWS", "REST", "mTLS", "eBPF", "Wasm", "gVisor", "OS", "UI",
+    "CLI", "IP", "TCP", "UDP", "HTTP", "HTTPS", "TLS", "SSL", "SQL", "NoSQL", "AST",
+    "CI", "CD", "PR", "SOC", "SIEM", "SOAR", "XDR", "EDR", "IDS", "IPS", "WAF", "CVE",
+    "CWE", "OWASP", "PoC", "LRU", "LFU", "OOM", "CPU", "RAM", "SSD", "HDD", "IO", "I/O",
+    "FIFO", "DNS", "SSH", "FTP", "SMTP", "VPN", "VPC", "NAT", "IAM", "RBAC", "ABAC",
+    "RTT", "Zero Trust", "Keep-Alive", "Fail-Open", "Fail-Safe", "Circuit Breaker",
+    "K8s", "Kubernetes", "Docker", "Redis", "Kafka", "RabbitMQ", "PostgreSQL", "MySQL",
+    "MongoDB", "Elasticsearch", "SQLite", "FastAPI", "Flask", "Django", "Express",
+    "NestJS", "Next.js", "React", "Vue", "Astro", "Pydantic", "SQLAlchemy", "Aiohttp",
+    "Requests", "Pytest", "Part 1", "Part 2", "Part 3", "v1", "v2", "v3",
+}
+
+# 주의가 필요한 AI 양산형 복합 대구 패턴 (Soft Warning 대상)
+AI_COMPLEX_CLICHE_PATTERNS = [
+    re.compile(r"뿐만 아니라.+도.+을 통해"),
+    re.compile(r"뿐만 아니라.+도.+를 통해"),
+    re.compile(r"바탕으로.+통해.+수 있습니다"),
+    re.compile(r"통해.+바탕으로.+수 있습니다"),
+]
+
+
+def strip_code_blocks(content: str) -> str:
+    """코드 블록(```...```) 및 인라인 코드(`...`)를 제거한 순수 마크다운 텍스트 반환"""
+    # 1. 펜스드 코드 블록 제거
+    text_without_blocks = re.sub(r"```.*?```", "", content, flags=re.DOTALL)
+    # 2. 인라인 백틱 코드 제거
+    text_without_inline = re.sub(r"`[^`\n]+`", "", text_without_blocks)
+    return text_without_inline
+
+
 def check_emojis(content: str) -> list[str]:
     """텍스트 내 이모지 포함 여부 검사"""
     errors = []
@@ -73,10 +106,34 @@ def check_emojis(content: str) -> list[str]:
     return errors
 
 
+def check_parentheses_english(content: str) -> list[str]:
+    """한글 뒤 불필요한 영단어 괄호 병기(예: 경보(Alert), 도구(Tool)) 검출 (하드 에러)"""
+    errors = []
+    pure_text = strip_code_blocks(content)
+
+    # 한글 단어 바로 뒤의 괄호 영문 매칭: e.g. 경보(Alert), 도구(Tool), 관제(Autonomous Security Desk)
+    pattern = re.compile(r"([가-힣]+)\s*\(([A-Za-z0-9\s_\-\/\.\&]+)\)")
+    for match in pattern.finditer(pure_text):
+        hangul_word = match.group(1)
+        english_inside = match.group(2).strip()
+
+        # 화이트리스트에 정확히 일치하거나 모든 토큰이 화이트리스트 약어인 경우 허용
+        tokens = [t.strip() for t in re.split(r"[\s\-\/\&]+", english_inside) if t.strip()]
+        if english_inside in ALLOWED_ENGLISH_ABBREVIATIONS:
+            continue
+        if tokens and all(t in ALLOWED_ENGLISH_ABBREVIATIONS for t in tokens):
+            continue
+
+        errors.append(
+            f"불필요한 괄호 내 영어 병기 감지: '{match.group()}' (한글: '{hangul_word}', 괄호: '{english_inside}'). "
+            f"공인 약어가 아닌 영단어 번역투 병기를 제거하고 순수 한국어로 기술하십시오."
+        )
+    return errors
+
+
 def check_required_sections(content: str) -> list[str]:
     """필수 ADR 마크다운 헤더(#, ##, ###) 포함 여부 검사"""
     errors = []
-    # 마크다운 헤더 라인만 추출하여 정밀 매칭
     header_lines = [line.strip() for line in content.splitlines() if line.strip().startswith("#")]
     header_text = "\n".join(header_lines)
 
@@ -88,36 +145,82 @@ def check_required_sections(content: str) -> list[str]:
 
 
 def check_mermaid(content: str) -> list[str]:
-    """Mermaid 다이어그램 블록 포함 여부 검사"""
-    if "```mermaid" not in content:
+    """Mermaid 다이어그램 블록 존재 및 런타임 구문 유효성 검사"""
+    mermaid_blocks = re.findall(r"```mermaid\s*\n(.*?)\n```", content, re.DOTALL)
+    if not mermaid_blocks:
         return ["Mermaid 다이어그램 블록(```mermaid ... ```)이 누락되었습니다."]
-    return []
 
-
-def check_ai_cliches(content: str) -> list[str]:
-    """AI 상투어 포함 여부 검사"""
     errors = []
-    for word in AI_CLICHE_WORDS:
-        if word in content:
-            errors.append(f"AI 상투어구 감지: '{word}'")
+    valid_diagram_types = (
+        "flowchart", "graph", "sequenceDiagram", "classDiagram",
+        "stateDiagram", "erDiagram", "gantt", "pie", "mindmap"
+    )
+
+    for idx, block in enumerate(mermaid_blocks, 1):
+        lines = [line.strip() for line in block.strip().splitlines() if line.strip() and not line.strip().startswith("%%")]
+        if not lines:
+            errors.append(f"Mermaid 블록 #{idx}의 내용이 비어 있습니다.")
+            continue
+
+        first_line = lines[0]
+        if not any(first_line.startswith(dtype) for dtype in valid_diagram_types):
+            errors.append(f"Mermaid 블록 #{idx}: 유효하지 않은 다이어그램 선언입니다 ('{first_line}'). flowchart, sequenceDiagram 등으로 시작해야 합니다.")
+
+        for line_no, line in enumerate(lines, 1):
+            unquoted_labels = re.findall(r"\|([^\"\|\n]*[\(\)\{\}\[\]\/][^\"\|\n]*)\|", line)
+            if unquoted_labels:
+                for bad_label in unquoted_labels:
+                    errors.append(f"Mermaid 블록 #{idx} L{line_no}: 엣지 라벨 '{bad_label.strip()}'에 특수문자/괄호가 포함되어 있으나 큰따옴표로 감싸지 않았습니다 (예: |\"{bad_label.strip()}\"| 형태로 수정 필요).")
+
+            if re.search(r"(\w+)\s*&\s*(\w+)\s*(-->|-->\||-.->)", line):
+                errors.append(f"Mermaid 블록 #{idx} L{line_no}: '&' 다중 노드 연결자('{line}')는 브라우저 렌더러에서 깨질 수 있습니다. 개별 간선(A --> C, B --> C)으로 분리하십시오.")
+
+            if line.count("[") != line.count("]") or line.count("{") != line.count("}"):
+                errors.append(f"Mermaid 블록 #{idx} L{line_no}: 괄호([]) 또는 중괄호({{}})의 열림/닫힘 쌍이 일치하지 않습니다 ('{line}').")
+
     return errors
 
 
-def validate_markdown_file(file_path: Path) -> tuple[bool, list[str]]:
-    """마크다운 파일 전체 무결성 검증"""
+def check_ai_cliches(content: str) -> tuple[list[str], list[str]]:
+    """AI 상투어(하드 에러) 및 복합 대구 패턴(소프트 경고) 검사"""
+    hard_errors = []
+    soft_warnings = []
+
+    pure_text = strip_code_blocks(content)
+
+    for word in AI_CLICHE_WORDS:
+        if word in pure_text:
+            hard_errors.append(f"금지된 AI 상투어구 감지: '{word}'")
+
+    for pattern in AI_COMPLEX_CLICHE_PATTERNS:
+        matches = list(pattern.finditer(pure_text))
+        if matches:
+            for m in matches:
+                soft_warnings.append(f"기계적 복합 대구 의심 패턴: '{m.group()}' (자연스러운 문맥인지 자가 검토 권장)")
+
+    return hard_errors, soft_warnings
+
+
+def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]:
+    """마크다운 파일 전체 무결성 검증 (하드 에러와 소프트 경고 분리)"""
     if not file_path.exists():
-        return False, [f"파일을 찾을 수 없습니다: {file_path}"]
+        return False, [f"파일을 찾을 수 없습니다: {file_path}"], []
 
     content = file_path.read_text(encoding="utf-8")
-    all_errors = []
+    hard_errors = []
+    soft_warnings = []
 
-    all_errors.extend(check_emojis(content))
-    all_errors.extend(check_required_sections(content))
-    all_errors.extend(check_mermaid(content))
-    all_errors.extend(check_ai_cliches(content))
+    hard_errors.extend(check_emojis(content))
+    hard_errors.extend(check_parentheses_english(content))
+    hard_errors.extend(check_required_sections(content))
+    hard_errors.extend(check_mermaid(content))
 
-    is_valid = len(all_errors) == 0
-    return is_valid, all_errors
+    cliche_errors, cliche_warnings = check_ai_cliches(content)
+    hard_errors.extend(cliche_errors)
+    soft_warnings.extend(cliche_warnings)
+
+    is_valid = len(hard_errors) == 0
+    return is_valid, hard_errors, soft_warnings
 
 
 EXCLUDED_ROOT_DIRS = {
@@ -263,15 +366,20 @@ def main():
         sys.exit(0)
 
     target_path = Path(arg)
-    is_valid, errors = validate_markdown_file(target_path)
+    is_valid, hard_errors, soft_warnings = validate_markdown_file(target_path)
 
     print(f"=== 하네스 검증 시작: {target_path.name} ===")
+    if soft_warnings:
+        print(f"[알림] {len(soft_warnings)}건의 권장 스타일 검토 항목이 있습니다:")
+        for idx, warn in enumerate(soft_warnings, 1):
+            print(f"  (i) {warn}")
+
     if is_valid:
         print("[통과] 모든 거버넌스 및 무결성 검사를 통과했습니다.")
         sys.exit(0)
     else:
-        print(f"[실패] {len(errors)}개의 위반 사항이 발견되었습니다:")
-        for idx, err in enumerate(errors, 1):
+        print(f"[실패] {len(hard_errors)}개의 필수 거버넌스 위반 사항이 발견되었습니다:")
+        for idx, err in enumerate(hard_errors, 1):
             print(f"  {idx}. {err}")
         sys.exit(1)
 

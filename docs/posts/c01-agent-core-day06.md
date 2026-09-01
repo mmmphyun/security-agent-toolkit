@@ -13,7 +13,7 @@ status: "published"
 보안 관제 시스템으로 쏟아지는 경보를 분석가가 일일이 수동 분석하는 방식은 대응 지연과 운영 피로를 부른다. 대규모 언어 모델(LLM)을 연동해 경보 데이터를 읽고, 위험도를 판단하며, 적절한 대응 도구를 골라 실행까지 위임하는 자율 관제 데스크를 구축했다.
 
 ### 1.1. 구조화된 출력 강제 (JSON Schema)
-LLM의 자유 텍스트 응답은 불완전한 포맷팅이나 파싱 실패(`JSONDecodeError`)를 유발하기 쉽다. API 요청 시 `response_format`에 엄격한 `json_schema`를 주입해 `severity`(high/medium/low), `summary`, `tool`(lock_account/block_ip/watch) 필드와 Enum 값을 런타임에 결정론적으로 강제했다.
+LLM의 자유 텍스트 응답은 불완전한 포맷팅이나 파싱 실패(`JSONDecodeError`)를 유발하기 쉽다. API 요청 시 `response_format`에 엄격한 `json_schema`를 주입해 `severity`, `summary`, `tool` 필드와 허용 Enum 값을 런타임에 결정론적으로 강제했다.
 
 ### 1.2. 도구 호출과 디스패처
 LLM이 내린 판단 문자열을 실제 실행 가능한 파이썬 함수와 매핑하는 레지스트리 패턴(`tools` 딕셔너리)을 구성해, 모델의 판단이 시스템 조치(계정 잠금, IP 차단, 관찰 대상 등록)로 이어지도록 연동했다.
