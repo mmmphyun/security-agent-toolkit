@@ -2,7 +2,7 @@
 title: "RPG Sync 프로젝트: 비용 제약과 운영 병목을 극복한 비동기 데이터 파이프라인 및 분산 인프라 설계"
 slug: "proj-rpg-sync-project-01-problem-definition-and-architecture"
 description: "디스코드 중심 단일 진실 공급원(SSOT), 온보딩 자동화, Redis 캐싱 및 Cloudflare R2를 활용한 제로 코스트 분산 아키텍처 구축 회고"
-pubDate: 2026-09-01
+pubDate: 2026-08-31
 tags: ["Architecture", "FastAPI", "Discord.py", "PostgreSQL", "Redis", "Cloudflare", "Docker", "GCP"]
 category: "프로젝트/실시간 RPG 동기화 엔진"
 status: "published"
