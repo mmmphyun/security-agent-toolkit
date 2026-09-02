@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "approve_severity": "high",
+  "report_folder": "reports",
+  "webhook_url": "http://127.0.0.1:5001/alert"
+}
