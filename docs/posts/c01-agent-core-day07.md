@@ -86,7 +86,7 @@ def generate_summaries_parallel(results: List[Dict[str, Any]], max_workers: int 
 
 1차 구현(`chain_report.py`)의 재귀 자가 호출 구조는 파이썬 런타임 특성상 꼬리 재귀 최적화를 지원하지 않아 연속 장애 발생 시 스택 오버플로우를 유발할 수 있다. 이를 제거하고 `for` 루프와 지수 백오프(`time.sleep(2 ** attempt)`)를 적용한 안정적인 재시도 메커니즘을 구축했다.
 
-통신 타임아웃과 기본 예외 처리는 이전 [Day 04](/blog/c01-agent-core-day04)의 방어선을 계승하되, 최대 재시도 초과 시에도 프로세스가 비정상 종료되지 않고 대체 문구를 반환하도록 안전망을 구성했다. 아울러 실행 작업 디렉터리 종속성을 탈피하기 위해 파일 기준 동적 절대경로(`os.path.abspath(__file__)`)와 월별 아카이빙 디렉터리 자동 생성(`os.makedirs`)을 적용했다.
+통신 타임아웃과 기본 예외 처리는 이전 [Day 04](/security-agent-toolkit/blog/c01-agent-core-day04/)의 방어선을 계승하되, 최대 재시도 초과 시에도 프로세스가 비정상 종료되지 않고 대체 문구를 반환하도록 안전망을 구성했다. 아울러 실행 작업 디렉터리 종속성을 탈피하기 위해 파일 기준 동적 절대경로(`os.path.abspath(__file__)`)와 월별 아카이빙 디렉터리 자동 생성(`os.makedirs`)을 적용했다.
 
 ```python
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
