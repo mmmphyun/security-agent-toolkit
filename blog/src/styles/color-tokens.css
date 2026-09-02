@@ -6,24 +6,24 @@
 
 :root {
   color-scheme: light;
-  --color-paper: #fbfcfd;
+  --color-paper: #ffffff;
   --color-paper-raised: #ffffff;
-  --color-paper-soft: #f5f7f8;
-  --color-paper-blue: #e8f6f8;
-  --color-paper-mint: #edfafa;
+  --color-paper-soft: #f4f6f8;
+  --color-paper-blue: #edf6fc;
+  --color-paper-mint: #f4f6f8;
 
-  --color-ink: #25272b;
-  --color-ink-soft: #45474b;
-  --color-muted: #697078;
-  --color-faint: #a7afb8;
-  --color-line: #e4e8ec;
-  --color-line-strong: #cbd5dd;
+  --color-ink: #111827;
+  --color-ink-soft: #374151;
+  --color-muted: #6b7280;
+  --color-faint: #9ca3af;
+  --color-line: #e5e7eb;
+  --color-line-strong: #cbd5e1;
 
-  --color-blue: #2973b2;
-  --color-teal: #48a6a7;
-  --color-mint: #9acbd0;
-  --color-olive: #495e57;
-  --color-signal: #f4ce14;
+  --color-blue: #0284c7;
+  --color-teal: #0284c7;
+  --color-mint: #e0f2fe;
+  --color-olive: #475569;
+  --color-signal: #d97706;
 }
 
 html[data-theme="dark"] {
