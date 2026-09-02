@@ -174,38 +174,42 @@ def check_required_sections(content: str) -> list[str]:
 
 
 def check_mermaid(content: str) -> list[str]:
-    """Mermaid 다이어그램 블록 존재 및 런타임 구문 유효성 검사"""
+    """Mermaid 다이어그램 블록 또는 구조화된 데이터 라이프사이클/파이프라인 표(Markdown Table) 존재 및 구문 유효성 검사"""
     mermaid_blocks = re.findall(r"```mermaid\s*\n(.*?)\n```", content, re.DOTALL)
-    if not mermaid_blocks:
-        return ["Mermaid 다이어그램 블록(```mermaid ... ```)이 누락되었습니다."]
+    markdown_tables = re.findall(r"(\|[^\n]+\|\r?\n\|[-:\s|]+\|\r?\n(?:\|[^\n]+\|\r?\n?)+)", content)
+
+    # Mermaid 다이어그램도 없고 구조화된 표도 없는 경우 하드 에러 (Wall of Text 방어)
+    if not mermaid_blocks and not markdown_tables:
+        return ["아키텍처 시각화 요소가 누락되었습니다. 시스템 동작 흐름을 시각화한 Mermaid 다이어그램(```mermaid ... ```) 또는 데이터 라이프사이클/파이프라인 구조화 표(| ... |) 중 최소 1개 이상을 포함하십시오."]
 
     errors = []
-    valid_diagram_types = (
-        "flowchart", "graph", "sequenceDiagram", "classDiagram",
-        "stateDiagram", "erDiagram", "gantt", "pie", "mindmap"
-    )
+    if mermaid_blocks:
+        valid_diagram_types = (
+            "flowchart", "graph", "sequenceDiagram", "classDiagram",
+            "stateDiagram", "erDiagram", "gantt", "pie", "mindmap"
+        )
 
-    for idx, block in enumerate(mermaid_blocks, 1):
-        lines = [line.strip() for line in block.strip().splitlines() if line.strip() and not line.strip().startswith("%%")]
-        if not lines:
-            errors.append(f"Mermaid 블록 #{idx}의 내용이 비어 있습니다.")
-            continue
+        for idx, block in enumerate(mermaid_blocks, 1):
+            lines = [line.strip() for line in block.strip().splitlines() if line.strip() and not line.strip().startswith("%%")]
+            if not lines:
+                errors.append(f"Mermaid 블록 #{idx}의 내용이 비어 있습니다.")
+                continue
 
-        first_line = lines[0]
-        if not any(first_line.startswith(dtype) for dtype in valid_diagram_types):
-            errors.append(f"Mermaid 블록 #{idx}: 유효하지 않은 다이어그램 선언입니다 ('{first_line}'). flowchart, sequenceDiagram 등으로 시작해야 합니다.")
+            first_line = lines[0]
+            if not any(first_line.startswith(dtype) for dtype in valid_diagram_types):
+                errors.append(f"Mermaid 블록 #{idx}: 유효하지 않은 다이어그램 선언입니다 ('{first_line}'). flowchart, sequenceDiagram 등으로 시작해야 합니다.")
 
-        for line_no, line in enumerate(lines, 1):
-            unquoted_labels = re.findall(r"\|([^\"\|\n]*[\(\)\{\}\[\]\/][^\"\|\n]*)\|", line)
-            if unquoted_labels:
-                for bad_label in unquoted_labels:
-                    errors.append(f"Mermaid 블록 #{idx} L{line_no}: 엣지 라벨 '{bad_label.strip()}'에 특수문자/괄호가 포함되어 있으나 큰따옴표로 감싸지 않았습니다 (예: |\"{bad_label.strip()}\"| 형태로 수정 필요).")
+            for line_no, line in enumerate(lines, 1):
+                unquoted_labels = re.findall(r"\|([^\"\|\n]*[\(\)\{\}\[\]\/][^\"\|\n]*)\|", line)
+                if unquoted_labels:
+                    for bad_label in unquoted_labels:
+                        errors.append(f"Mermaid 블록 #{idx} L{line_no}: 엣지 라벨 '{bad_label.strip()}'에 특수문자/괄호가 포함되어 있으나 큰따옴표로 감싸지 않았습니다 (예: |\"{bad_label.strip()}\"| 형태로 수정 필요).")
 
-            if re.search(r"(\w+)\s*&\s*(\w+)\s*(-->|-->\||-.->)", line):
-                errors.append(f"Mermaid 블록 #{idx} L{line_no}: '&' 다중 노드 연결자('{line}')는 브라우저 렌더러에서 깨질 수 있습니다. 개별 간선(A --> C, B --> C)으로 분리하십시오.")
+                if re.search(r"(\w+)\s*&\s*(\w+)\s*(-->|-->\||-.->)", line):
+                    errors.append(f"Mermaid 블록 #{idx} L{line_no}: '&' 다중 노드 연결자('{line}')는 브라우저 렌더러에서 깨질 수 있습니다. 개별 간선(A --> C, B --> C)으로 분리하십시오.")
 
-            if line.count("[") != line.count("]") or line.count("{") != line.count("}"):
-                errors.append(f"Mermaid 블록 #{idx} L{line_no}: 괄호([]) 또는 중괄호({{}})의 열림/닫힘 쌍이 일치하지 않습니다 ('{line}').")
+                if line.count("[") != line.count("]") or line.count("{") != line.count("}"):
+                    errors.append(f"Mermaid 블록 #{idx} L{line_no}: 괄호([]) 또는 중괄호({{}})의 열림/닫힘 쌍이 일치하지 않습니다 ('{line}').")
 
     return errors
 
