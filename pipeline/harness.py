@@ -333,7 +333,7 @@ def check_duplicate_topics(content: str, current_file: Path) -> list[str]:
                     if prev["slug"] not in content and prev["file"] not in content:
                         warnings.append(
                             f"중복 주제 검토 권장: '{current_h}' 주제는 이미 [{prev['slug']}]({prev['title']})에서 다루었습니다. "
-                            f"내용 중복 서술 대신 이전 포스트 링크([링크](/blog/{prev['slug']})) 인용 및 당일 신규 아키텍처(Delta) 중심으로 작성을 권장합니다."
+                            f"내용 중복 서술 대신 이전 포스트 링크([링크](/security-agent-toolkit/blog/{prev['slug']}/)) 인용 및 당일 신규 아키텍처(Delta) 중심으로 작성을 권장합니다."
                         )
     return warnings
 
