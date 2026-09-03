@@ -241,12 +241,11 @@ const numberedListStart = (items: Block[], index: number) => {
   <script>
     import mermaid from "mermaid";
 
-    async function initMermaidAndTOC() {
-      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-      mermaid.initialize({
+    function getMermaidConfig(isDark: boolean) {
+      return {
         startOnLoad: false,
-        theme: isDark ? "dark" : "default",
-        securityLevel: "loose",
+        theme: (isDark ? "dark" : "default") as any,
+        securityLevel: "loose" as any,
         themeVariables: isDark ? {
           darkMode: true,
           background: "#18181b",
@@ -268,35 +267,54 @@ const numberedListStart = (items: Block[], index: number) => {
           tertiaryColor: "#f8fafc",
           fontFamily: "ui-sans-serif, system-ui, -apple-system, sans-serif",
         },
-      });
+      };
+    }
 
-      // 마크다운 내 mermaid 블록 탐색 (pre 또는 code)
+    let mermaidIndex = 0;
+
+    async function renderAllMermaid(isDark: boolean) {
+      mermaid.initialize(getMermaidConfig(isDark));
+
+      // 1. 이미 렌더링되어 data-raw-code를 보유한 컨테이너 실시간 리렌더링
+      const existingContainers = Array.from(document.querySelectorAll<HTMLElement>(".mermaid-container[data-raw-code]"));
+      for (const container of existingContainers) {
+        const rawCode = container.dataset.rawCode;
+        if (!rawCode) continue;
+        const containerId = `mermaid-svg-${Date.now()}-${mermaidIndex++}`;
+        try {
+          const { svg } = await mermaid.render(containerId, rawCode);
+          container.innerHTML = svg;
+        } catch (err) {
+          console.error("Mermaid 실시간 테마 리렌더링 실패:", err);
+        }
+      }
+
+      // 2. 최초 실행 시 pre 블록을 찾아 컨테이너로 교체 및 raw-code 보존
       const codeBlocks = Array.from(document.querySelectorAll(".block-document pre"));
-      let index = 0;
-
       for (const pre of codeBlocks) {
         const codeElement = pre.querySelector("code");
         const className = (pre.className || "") + " " + (codeElement?.className || "");
         const text = pre.textContent || "";
 
-        // mermaid 코드 블록 판별
-        if (className.includes("mermaid") || text.trim().startsWith("sequenceDiagram") || text.trim().startsWith("flowchart") || text.trim().startsWith("graph")) {
+        if (className.includes("mermaid") || text.trim().startsWith("sequenceDiagram") || text.trim().startsWith("flowchart") || text.trim().startsWith("graph") || text.trim().startsWith("stateDiagram")) {
           const rawCode = text.trim();
-          const containerId = `mermaid-svg-${Date.now()}-${index++}`;
+          const containerId = `mermaid-svg-${Date.now()}-${mermaidIndex++}`;
           
           try {
             const { svg } = await mermaid.render(containerId, rawCode);
             const container = document.createElement("div");
             container.className = "mermaid-container not-prose";
+            container.dataset.rawCode = rawCode;
             container.innerHTML = svg;
             pre.replaceWith(container);
           } catch (err) {
-            console.error("Mermaid 렌더링 실패:", err);
+            console.error("Mermaid 초기 렌더링 실패:", err);
           }
         }
       }
+    }
 
-      // TOC IntersectionObserver 감지
+    function initTOC() {
       const headings = Array.from(document.querySelectorAll(".block-document h1[id], .block-document h2[id], .block-document h3[id], [data-heading-block='true']"));
       const tocLinks = new Map(
         Array.from(document.querySelectorAll("[data-toc-link]")).map((link) => [
@@ -327,7 +345,41 @@ const numberedListStart = (items: Block[], index: number) => {
       }
     }
 
-    document.addEventListener("astro:page-load", initMermaidAndTOC);
-    initMermaidAndTOC();
+    let themeObserver: MutationObserver | null = null;
+
+    function setupThemeObserver() {
+      if (themeObserver) {
+        themeObserver.disconnect();
+      }
+
+      let lastTheme = document.documentElement.getAttribute("data-theme") || "light";
+
+      themeObserver = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (m.type === "attributes" && m.attributeName === "data-theme") {
+            const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+            if (currentTheme !== lastTheme) {
+              lastTheme = currentTheme;
+              renderAllMermaid(currentTheme === "dark");
+            }
+          }
+        }
+      });
+
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["data-theme"],
+      });
+    }
+
+    function init() {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      renderAllMermaid(isDark);
+      initTOC();
+      setupThemeObserver();
+    }
+
+    document.addEventListener("astro:page-load", init);
+    init();
   </script>
 </BaseLayout>
