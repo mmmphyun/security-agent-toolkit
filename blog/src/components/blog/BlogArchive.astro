@@ -259,7 +259,7 @@ const networkLinks = Array.from(edgeMap.values());
                 </a>
                 <div class="post-card__body">
                   <div class="post-card__meta flex items-center justify-between">
-                    <span class="text-xs px-2 py-0.5 rounded bg-zinc-800 text-sky-400 border border-zinc-700">{category}</span>
+                    <span class="post-card__category">{category}</span>
                     <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
                   </div>
                   <a href={url} class="post-card__title">{post.data.title}</a>

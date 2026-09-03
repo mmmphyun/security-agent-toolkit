@@ -170,6 +170,33 @@ const numberedListStart = (items: Block[], index: number) => {
       border: 1px solid var(--color-line) !important;
       background-color: var(--color-paper-soft) !important;
     }
+    /* Shiki 듀얼 테마 다크 모드 토큰 오버라이드 */
+    html[data-theme="dark"] .block-document pre code span {
+      color: var(--shiki-dark) !important;
+      font-style: var(--shiki-dark-font-style) !important;
+      font-weight: var(--shiki-dark-font-weight) !important;
+      text-decoration: var(--shiki-dark-text-decoration) !important;
+    }
+    .block-document table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+      border: 1px solid var(--color-line);
+      font-size: 0.92rem;
+    }
+    .block-document th,
+    .block-document td {
+      border: 1px solid var(--color-line);
+      padding: 0.65rem 0.95rem;
+    }
+    .block-document th {
+      background-color: var(--color-paper-soft);
+      color: var(--color-ink);
+      font-weight: 600;
+    }
+    .block-document td {
+      color: var(--color-ink-soft);
+    }
     .block-document code:not(pre code) {
       padding: 0.2rem 0.45rem;
       border-radius: 0.375rem;
