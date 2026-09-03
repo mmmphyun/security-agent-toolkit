@@ -6,12 +6,18 @@
     "AST", "CI", "CD", "PR", "SOC", "SIEM", "SOAR", "XDR", "EDR", "IDS", "IPS", "WAF",
     "CVE", "CWE", "OWASP", "PoC", "LRU", "LFU", "OOM", "CPU", "RAM", "SSD", "HDD", "IO",
     "I/O", "FIFO", "DNS", "SSH", "FTP", "SMTP", "VPN", "VPC", "NAT", "IAM", "RBAC", "ABAC",
-    "RTT", "Zero Trust", "Keep-Alive", "Fail-Open", "Fail-Safe", "Circuit Breaker"
+    "RTT", "Zero Trust", "Keep-Alive", "Fail-Open", "Fail-Safe", "Circuit Breaker",
+    "ARP", "ICMP", "MAC", "OUI", "UAA", "LAA", "DHCP", "CIDR", "SYN", "ACK", "FIN", "RST",
+    "PSH", "URG", "MTU", "MSS", "VLAN", "SYN-ACK", "TIME_WAIT", "CLOSE_WAIT", "ESTABLISHED",
+    "SYN_SENT", "SYN_RECV", "FIN_WAIT_1", "FIN_WAIT_2", "LAST_ACK", "LISTEN",
+    "3-way Handshake", "4-way Handshake"
   ],
   "frameworks_and_tools": [
     "K8s", "Kubernetes", "Docker", "Redis", "Kafka", "RabbitMQ", "PostgreSQL", "MySQL",
     "MongoDB", "Elasticsearch", "SQLite", "FastAPI", "Flask", "Django", "Express",
     "NestJS", "Next.js", "React", "Vue", "Astro", "Pydantic", "SQLAlchemy", "Aiohttp",
-    "Requests", "Pytest", "Part 1", "Part 2", "Part 3", "v1", "v2", "v3"
+    "Requests", "Pytest", "Part 1", "Part 2", "Part 3", "v1", "v2", "v3",
+    "Wireshark", "tcpdump", "netstat", "ipconfig", "ifconfig", "traceroute", "tracert",
+    "ping", "nmap", "Scapy", "Ethernet", "Gateway", "Subnet"
   ]
 }
