@@ -22,6 +22,8 @@
   --archive-mint: var(--color-mint);
   --archive-olive: var(--color-olive);
   --archive-signal: var(--color-signal);
+  --archive-card-shadow: var(--color-card-shadow);
+  --archive-card-shadow-hover: var(--color-card-shadow-hover);
   width: min(100%, 1140px);
   margin: 0 auto;
   padding: 0 40px 84px;
@@ -437,13 +439,13 @@
   border: 1px solid var(--archive-border);
   border-radius: 10px;
   background: var(--archive-panel);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--archive-card-shadow);
   transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .post-card:hover {
   border-color: var(--archive-border-strong);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--archive-card-shadow-hover);
   transform: translateY(-1px);
 }
 
@@ -519,6 +521,20 @@
   font-size: 0.72rem;
   font-style: normal;
   font-weight: 850;
+}
+
+.post-card__category {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--archive-border);
+  background: var(--archive-panel-soft);
+  color: var(--archive-accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .post-card__meta time,
@@ -629,9 +645,9 @@
 }
 
 .bento-page-num--active {
-  border-color: var(--archive-teal);
-  background: var(--archive-teal);
-  color: #ffffff;
+  border-color: var(--archive-accent);
+  background: var(--archive-accent);
+  color: var(--color-paper);
 }
 
 .post-list {

@@ -24,6 +24,9 @@
   --color-mint: #e0f2fe;
   --color-olive: #475569;
   --color-signal: #d97706;
+
+  --color-card-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  --color-card-shadow-hover: 0 8px 22px rgba(15, 23, 42, 0.1);
 }
 
 html[data-theme="dark"] {
@@ -46,4 +49,7 @@ html[data-theme="dark"] {
   --color-mint: #d4d4d8;
   --color-olive: #a1a1aa;
   --color-signal: #d1a751;
+
+  --color-card-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --color-card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.7);
 }
