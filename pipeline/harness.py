@@ -77,6 +77,11 @@ DEFAULT_WHITELIST = {
     "CWE", "OWASP", "PoC", "LRU", "LFU", "OOM", "CPU", "RAM", "SSD", "HDD", "IO", "I/O",
     "FIFO", "DNS", "SSH", "FTP", "SMTP", "VPN", "VPC", "NAT", "IAM", "RBAC", "ABAC",
     "RTT", "Zero Trust", "Keep-Alive", "Fail-Open", "Fail-Safe", "Circuit Breaker",
+    "ARP", "ICMP", "MAC", "OUI", "UAA", "LAA", "DHCP", "CIDR", "SYN", "ACK", "FIN", "RST",
+    "PSH", "URG", "MTU", "MSS", "VLAN", "SYN-ACK", "TIME_WAIT", "CLOSE_WAIT", "ESTABLISHED",
+    "SYN_SENT", "SYN_RECV", "FIN_WAIT_1", "FIN_WAIT_2", "LAST_ACK", "LISTEN",
+    "3-way Handshake", "4-way Handshake", "Wireshark", "tcpdump", "netstat", "ipconfig",
+    "ifconfig", "traceroute", "tracert", "ping", "nmap", "Scapy", "Ethernet", "Gateway", "Subnet",
     "K8s", "Kubernetes", "Docker", "Redis", "Kafka", "RabbitMQ", "PostgreSQL", "MySQL",
     "MongoDB", "Elasticsearch", "SQLite", "FastAPI", "Flask", "Django", "Express",
     "NestJS", "Next.js", "React", "Vue", "Astro", "Pydantic", "SQLAlchemy", "Aiohttp",
@@ -84,7 +89,7 @@ DEFAULT_WHITELIST = {
 }
 
 # 대문자 2~6자리 순수 기술 약어 패턴 (예: JWT, AES, RSA, RFC 등 자동 허용)
-ACRONYM_PATTERN = re.compile(r"^[A-Z0-9]{2,6}$")
+ACRONYM_PATTERN = re.compile(r"^[A-Z0-9]{2,8}$")
 
 
 def load_whitelist() -> set[str]:
@@ -134,8 +139,8 @@ def is_allowed_english(text: str, whitelist: set[str]) -> bool:
     if stripped in whitelist or ACRONYM_PATTERN.match(stripped):
         return True
 
-    # 공백이나 특수문자로 구분된 복합 토큰 분할 검사
-    tokens = [t.strip() for t in re.split(r"[\s\-\/\&]+", stripped) if t.strip()]
+    # 공백이나 특수문자(-, /, &, _)로 구분된 복합 토큰 분할 검사
+    tokens = [t.strip() for t in re.split(r"[\s\-\/\&\_]+", stripped) if t.strip()]
     return bool(tokens and all(t in whitelist or ACRONYM_PATTERN.match(t) for t in tokens))
 
 
