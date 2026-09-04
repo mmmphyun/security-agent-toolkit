@@ -56,6 +56,15 @@ REQUIRED_SECTIONS = [
     ("Verification/Results", ["검증", "회고", "성과", "배움", "결과", "Verification", "Takeaway", "Result", "Lesson"]),
 ]
 
+# 공식 1~5과목 카테고리 매핑 테이블
+COURSE_CATEGORY_MAP = {
+    "c01": "AI·보안 자동화",
+    "c02": "네트워크·Zero Trust",
+    "c03": "접근통제 자동화",
+    "c04": "이상탐지 자동화",
+    "c05": "자동 대응 SOAR",
+}
+
 
 def clean_markdown_fences(raw_text: str) -> str:
     """최외곽 마크다운 코드 블록 감싸기 제거 (본문 말단 코드블록 보존)"""
@@ -347,6 +356,93 @@ def check_duplicate_topics(content: str, current_file: Path) -> list[str]:
     return warnings
 
 
+def check_category_mapping(content: str, current_file: Path) -> list[str]:
+    """포스트의 과목 슬러그 접두사(c01~c05, proj-)와 Frontmatter 카테고리 일치 여부 검증"""
+    stem = current_file.stem.lower()
+    errors = []
+
+    match = re.search(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
+    if not match:
+        return ["Frontmatter가 누락되었거나 형식이 올바르지 않습니다."]
+
+    frontmatter_text = match.group(1)
+    category_match = re.search(r"^category:\s*[\"']?([^\"'\n\r]+)[\"']?", frontmatter_text, re.MULTILINE)
+    if not category_match:
+        return ["Frontmatter에 'category' 필드가 누락되었습니다."]
+
+    actual_category = category_match.group(1).strip()
+
+    # 1. 과목 실습 검증 (c01~c05)
+    for prefix, expected_cat in COURSE_CATEGORY_MAP.items():
+        if stem.startswith(prefix):
+            if actual_category != expected_cat:
+                errors.append(
+                    f"과목 카테고리 불일치: [{current_file.name}]은 '{prefix}' 과목이므로 "
+                    f"category: \"{expected_cat}\"을 지정해야 하나, 현재 \"{actual_category}\"(으)로 기재되었습니다."
+                )
+            return errors
+
+    # 2. 프로젝트 포스트 검증 (proj-)
+    if stem.startswith("proj-"):
+        if not actual_category.startswith("프로젝트/"):
+            errors.append(
+                f"프로젝트 카테고리 규격 위반: [{current_file.name}]은 자율 프로젝트 회고이므로 "
+                f"category: \"프로젝트/<기술도메인명>\" 형식을 따라야 하나, 현재 \"{actual_category}\"(으)로 기재되었습니다."
+            )
+
+    return errors
+
+
+def check_paragraph_pacing(content: str) -> list[str]:
+    """단일 문단이 4문장 이상이면서 320자를 초과하는 텍스트 벽 감지 및 자가 교정 지침 반환"""
+    errors = []
+
+    # Frontmatter 제거
+    body = re.sub(r"^---\s*\n.*?\n---\s*\n", "", content, flags=re.DOTALL)
+    # 코드 블록 제거
+    body = re.sub(r"```.*?```", "", body, flags=re.DOTALL)
+    # 테이블 제거
+    body = re.sub(r"(\|[^\n]+\|\r?\n\|[-:\s|]+\|\r?\n(?:\|[^\n]+\|\r?\n?)+)", "", body)
+
+    paragraphs = body.split("\n\n")
+    for p in paragraphs:
+        clean_p = p.strip()
+        if not clean_p:
+            continue
+
+        # 헤더, 인용구, 불릿/숫자 리스트, HTML 태그 제외
+        lines = [line.strip() for line in clean_p.splitlines() if line.strip()]
+        if not lines:
+            continue
+        if any(lines[0].startswith(prefix) for prefix in ("#", ">", "-", "*", "+", "<")):
+            continue
+        if re.match(r"^\d+\.\s", lines[0]):
+            continue
+
+        # 순수 줄글 문단 텍스트 조합
+        paragraph_text = " ".join(lines)
+
+        # 문장 분리 (온점, 물음표, 느낌표 뒤 공백 또는 문자열 끝)
+        sentences = [s.strip() for s in re.split(r"[.!?](?:\s+|$)", paragraph_text) if s.strip()]
+        sent_count = len(sentences)
+        char_len = len(paragraph_text)
+
+        # 4문장 이상이면서 250자 이상이거나, 단일 문단이 350자를 초과하는 경우 텍스트 벽으로 판정
+        is_too_many_sentences = sent_count >= 4 and char_len >= 250
+        is_too_long = char_len >= 350
+
+        if is_too_many_sentences or is_too_long:
+            preview = paragraph_text[:45].replace("\n", " ")
+            errors.append(
+                f"문단 호흡 위반 ('{preview}...'): 단일 문단이 {sent_count}문장({char_len}자)으로 구성되어 가독성을 저해하는 텍스트 벽이 감지되었습니다.\n"
+                f"  -> [자가 교정 지침]:\n"
+                f"     1. 기술적 내용이나 맥락을 절대 요약·축약하거나 삭제하지 마십시오.\n"
+                f"     2. 문맥이 전환되는 지점(2~3문장 단위)에서 빈 줄(엔터 2번, \\n\\n)을 삽입하여 문단을 2개 이상으로 자연스럽게 분절하십시오."
+            )
+
+    return errors
+
+
 def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]:
     """마크다운 파일 전체 무결성 검증 (하드 에러와 소프트 경고 분리)"""
     if not file_path.exists():
@@ -358,6 +454,8 @@ def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]
 
     hard_errors.extend(check_emojis(content))
     hard_errors.extend(check_parentheses_english(content))
+    hard_errors.extend(check_category_mapping(content, file_path))
+    hard_errors.extend(check_paragraph_pacing(content))
     hard_errors.extend(check_required_sections(content))
     hard_errors.extend(check_mermaid(content))
     hard_errors.extend(check_code_paths(content, file_path))
