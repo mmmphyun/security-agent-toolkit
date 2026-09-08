@@ -185,6 +185,10 @@ const numberedListStart = (items: Block[], index: number) => {
       margin: 2rem 0;
       border: 1px solid var(--color-line);
       font-size: 0.92rem;
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      max-width: 100%;
     }
     .block-document th,
     .block-document td {
@@ -206,6 +210,7 @@ const numberedListStart = (items: Block[], index: number) => {
       border: 1px solid var(--color-line);
       color: var(--color-blue);
       font-size: 0.9em;
+      word-break: break-word;
     }
     .block-document blockquote {
       margin: 2rem 0 !important;
@@ -247,6 +252,35 @@ const numberedListStart = (items: Block[], index: number) => {
     .mermaid-container svg {
       max-width: 100%;
       height: auto;
+    }
+
+    @media (max-width: 768px) {
+      .block-document {
+        font-size: 0.95rem;
+        line-height: 1.7;
+      }
+      .block-document h2 {
+        margin-top: 2.5rem !important;
+        margin-bottom: 1rem !important;
+        font-size: 1.4rem !important;
+      }
+      .block-document h3 {
+        margin-top: 2rem !important;
+        margin-bottom: 0.75rem !important;
+        font-size: 1.2rem !important;
+      }
+      .block-document pre {
+        padding: 1rem !important;
+        font-size: 0.82rem;
+      }
+      .block-document blockquote {
+        margin: 1.5rem 0 !important;
+        padding: 0.9rem 1.1rem !important;
+      }
+      .mermaid-container {
+        padding: 1rem;
+        margin: 1.8rem 0;
+      }
     }
   </style>
 
