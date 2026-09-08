@@ -228,6 +228,55 @@ def check_mermaid(content: str) -> list[str]:
     return errors
 
 
+def check_local_links(content: str) -> list[str]:
+    """정적 웹 사이트 배포 환경에서 동작하지 않는 로컬 파일 링크(file://, C:/, 비웹 상대경로) 검출 (하드 에러)"""
+    errors = []
+    pure_text = strip_code_blocks(content)
+
+    # 1. file:// 프로토콜 검출 (코드 블록 제외 본문 전수 검사)
+    file_schema_matches = re.findall(r"file://[^\s\)\"'>]+", pure_text, re.IGNORECASE)
+    for match in file_schema_matches:
+        errors.append(
+            f"로컬 파일 프로토콜 링크 감지: '{match}'. "
+            f"정적 웹 배포 환경에서는 로컬 'file://' 프로토콜을 사용할 수 없습니다. "
+            f"인라인 코드 표기(`filename.ext`) 또는 웹 라우팅 링크(/security-agent-toolkit/blog/...)를 사용하십시오."
+        )
+
+    # 2. 마크다운 링크 [text](url) 및 이미지 ![alt](url) 검사
+    link_pattern = re.compile(r"!?\[([^\]]*)\]\(([^)]+)\)")
+    for match in link_pattern.finditer(pure_text):
+        label = match.group(1).strip()
+        url = match.group(2).strip()
+
+        # file:// 스키마는 1번에서 잡히므로 패스
+        if url.lower().startswith("file:"):
+            continue
+
+        # 윈도우 드라이브 절대 경로 (C:/..., c:\..., /c:/...)
+        if re.match(r"^(?:/[a-zA-Z]:|[a-zA-Z]:)[/\\]", url):
+            errors.append(
+                f"로컬 드라이브 절대 경로 링크 감지: '[{label}]({url})'. "
+                f"정적 웹 사이트에서는 호스트 로컬 절대 경로를 링크할 수 없습니다. "
+                f"인라인 코드 표기(`...`)로 대체하십시오."
+            )
+            continue
+
+        # 웹 표준 스키마, 루트 상대 웹 경로, 페이지 내 앵커는 정상
+        if url.startswith(("http://", "https://", "mailto:", "tel:", "#", "/")):
+            continue
+
+        # 로컬 소스/문서 파일 직접 상대 링크 (예: [doc](rule.md), [code](main.py), ../logs/...)
+        local_ext_match = re.search(r"\.(?:md|py|pkt|pcap|pcapng|json|yaml|yml|sh|ps1|txt|csv)(?:[#?].*)?$", url, re.IGNORECASE)
+        if local_ext_match or url.startswith("../"):
+            errors.append(
+                f"비웹 로컬 파일 상대 링크 감지: '[{label}]({url})'. "
+                f"정적 웹 배포 환경에서는 소스 레포지토리 로컬 파일을 직접 링크할 수 없습니다. "
+                f"인라인 코드 표기(`{url}`)로 대체하거나 내부 블로그 라우팅(/security-agent-toolkit/blog/<slug>/)을 적용하십시오."
+            )
+
+    return errors
+
+
 def check_code_paths(content: str, current_file: Path) -> list[str]:
     """코드 블록 주석이나 설명에 명시된 파일 경로가 실제 레포지토리 또는 캐시 레포에 존재하는지 검증"""
     errors = []
@@ -459,6 +508,7 @@ def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]
     hard_errors.extend(check_required_sections(content))
     hard_errors.extend(check_mermaid(content))
     hard_errors.extend(check_code_paths(content, file_path))
+    hard_errors.extend(check_local_links(content))
 
     cliche_errors, cliche_warnings = check_ai_cliches(content)
     hard_errors.extend(cliche_errors)
