@@ -3,7 +3,7 @@ title: "RPG Sync 프로젝트: 3초 타임아웃 제약과 외부 API 장애 격
 slug: "proj-rpg-sync-project-04-external-api-and-async-onboarding"
 description: "디스코드 게이트웨이의 엄격한 3초 인터랙션 타임아웃과 미국-한국 간 원격 DB 쓰기 지연 속에서, 선제 defer ACK, 전역 HTTP 세션 풀링, Redis 기반 3회 오입력 차단 락, 식별자 경계 정규화 및 최소 권한 매직링크를 결합한 무중단 온보딩 파이프라인 설계 기록"
 pubDate: 2026-09-04
-category: "프로젝트/RPG Sync"
+category: "프로젝트/실시간 RPG 동기화 엔진"
 status: "published"
 tags:
   - Discord.py
