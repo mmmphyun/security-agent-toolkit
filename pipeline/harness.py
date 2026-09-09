@@ -65,6 +65,13 @@ COURSE_CATEGORY_MAP = {
     "c05": "자동 대응 SOAR",
 }
 
+# 공식 자율 프로젝트 카테고리 매핑 테이블
+PROJECT_CATEGORY_MAP = {
+    "proj-rpg-sync-project": "프로젝트/실시간 RPG 동기화 엔진",
+    "proj-devlog-agent-pipeline": "프로젝트/DevLog 자율 에이전트",
+}
+
+
 
 def clean_markdown_fences(raw_text: str) -> str:
     """최외곽 마크다운 코드 블록 감싸기 제거 (본문 말단 코드블록 보존)"""
@@ -409,6 +416,7 @@ def check_category_mapping(content: str, current_file: Path) -> list[str]:
     """포스트의 과목 슬러그 접두사(c01~c05, proj-)와 Frontmatter 카테고리 일치 여부 검증"""
     stem = current_file.stem.lower()
     errors = []
+    content = content.lstrip("\ufeff")
 
     match = re.search(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
     if not match:
@@ -433,11 +441,23 @@ def check_category_mapping(content: str, current_file: Path) -> list[str]:
 
     # 2. 프로젝트 포스트 검증 (proj-)
     if stem.startswith("proj-"):
-        if not actual_category.startswith("프로젝트/"):
-            errors.append(
-                f"프로젝트 카테고리 규격 위반: [{current_file.name}]은 자율 프로젝트 회고이므로 "
-                f"category: \"프로젝트/<기술도메인명>\" 형식을 따라야 하나, 현재 \"{actual_category}\"(으)로 기재되었습니다."
-            )
+        matched_project = False
+        for prefix, expected_cat in PROJECT_CATEGORY_MAP.items():
+            if stem.startswith(prefix):
+                matched_project = True
+                if actual_category != expected_cat:
+                    errors.append(
+                        f"프로젝트 카테고리 불일치: [{current_file.name}]은 '{prefix}' 프로젝트이므로 "
+                        f"category: \"{expected_cat}\"을 지정해야 하나, 현재 \"{actual_category}\"(으)로 기재되었습니다."
+                    )
+                break
+
+        if not matched_project:
+            if not actual_category.startswith("프로젝트/"):
+                errors.append(
+                    f"프로젝트 카테고리 규격 위반: [{current_file.name}]은 자율 프로젝트 회고이므로 "
+                    f"category: \"프로젝트/<기술도메인명>\" 형식을 따라야 하나, 현재 \"{actual_category}\"(으)로 기재되었습니다."
+                )
 
     return errors
 
@@ -497,7 +517,7 @@ def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]
     if not file_path.exists():
         return False, [f"파일을 찾을 수 없습니다: {file_path}"], []
 
-    content = file_path.read_text(encoding="utf-8")
+    content = file_path.read_text(encoding="utf-8-sig")
     hard_errors = []
     soft_warnings = []
 
