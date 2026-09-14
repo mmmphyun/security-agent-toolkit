@@ -459,6 +459,14 @@ def check_category_mapping(content: str, current_file: Path) -> list[str]:
                     f"category: \"프로젝트/<기술도메인명>\" 형식을 따라야 하나, 현재 \"{actual_category}\"(으)로 기재되었습니다."
                 )
 
+    # 3. 회고 포스트 검증 (retro-)
+    if stem.startswith("retro-"):
+        if actual_category not in ("회고", "엔지니어링 회고"):
+            errors.append(
+                f"회고 카테고리 규격 위반: [{current_file.name}]은 엔지니어링 회고이므로 "
+                f"category: \"회고\" 또는 \"엔지니어링 회고\"를 지정해야 하나, 현재 \"{actual_category}\"(으)로 기재되었습니다."
+            )
+
     return errors
 
 
@@ -521,12 +529,17 @@ def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]
     hard_errors = []
     soft_warnings = []
 
+    is_retro = file_path.stem.startswith("retro-") or bool(re.search(r"^category:\s*[\"']?(?:회고|엔지니어링 회고)[\"']?", content, re.MULTILINE))
+
     hard_errors.extend(check_emojis(content))
     hard_errors.extend(check_parentheses_english(content))
     hard_errors.extend(check_category_mapping(content, file_path))
     hard_errors.extend(check_paragraph_pacing(content))
-    hard_errors.extend(check_required_sections(content))
-    hard_errors.extend(check_mermaid(content))
+
+    if not is_retro:
+        hard_errors.extend(check_required_sections(content))
+        hard_errors.extend(check_mermaid(content))
+
     hard_errors.extend(check_code_paths(content, file_path))
     hard_errors.extend(check_local_links(content))
 
