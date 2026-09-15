@@ -199,7 +199,8 @@ const networkLinks = Array.from(edgeMap.values());
       <button type="button" class="blog-tab" data-category-tab="접근통제 자동화">3과목: 접근통제</button>
       <button type="button" class="blog-tab" data-category-tab="이상탐지 자동화">4과목: 이상탐지</button>
       <button type="button" class="blog-tab" data-category-tab="자동 대응 soar">5과목: SOAR</button>
-      <button type="button" class="blog-tab" data-category-tab="프로젝트">프로젝트 회고</button>
+      <button type="button" class="blog-tab" data-category-tab="프로젝트">프로젝트</button>
+      <button type="button" class="blog-tab" data-category-tab="회고">회고</button>
       <a class:list={["blog-tab", initialView === "tags" && "blog-tab--active"]} href={withBase('/blog/tags/')}>태그 아카이브</a>
     </nav>
 
@@ -256,7 +257,9 @@ const networkLinks = Array.from(edgeMap.values());
                         ? `DAY ${post.data.slug.match(/day(\d+)/i)[1]}`
                         : (post.data.slug?.startsWith("proj-") || category.startsWith("프로젝트"))
                           ? "PROJ"
-                          : String(index + 1).padStart(2, "0")
+                          : (post.data.slug?.startsWith("retro-") || category === "회고")
+                            ? "RETRO"
+                            : String(index + 1).padStart(2, "0")
                     }</span>
                   )}
                 </a>
