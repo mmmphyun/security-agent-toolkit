@@ -1,4 +1,4 @@
-﻿---
+---
 title: "RPG Sync 프로젝트: 물리적 제약 환경에서 교과서적 이상론을 버리고 병목을 뚫은 4가지 실용적 엔지니어링 타협"
 slug: "proj-rpg-sync-project-06-pragmatic-engineering-compromises"
 description: "GCP 프리티어 1GB RAM과 태평양 횡단 RTT 200ms라는 물리적 인프라 제약 속에서 커널 TCP Keepalive, 스레드풀 격리, Safe TTL 단발 락, Jinja2 SSR로 병목을 극복한 4가지 엔지니어링 타협 기록"
@@ -7,8 +7,6 @@ category: "프로젝트/실시간 RPG 동기화 엔진"
 status: "published"
 tags: ["Distributed-System", "Python", "Database", "Performance-Tuning", "Architecture"]
 ---
-
-# 교과서적 이상론을 버리고 병목을 뚫다: 물리적 제약 환경에서의 4가지 실용적 엔지니어링 타협
 
 ## 1. 개요 및 프로젝트 배경
 
