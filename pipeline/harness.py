@@ -107,6 +107,9 @@ DEFAULT_WHITELIST = {
 # 대문자 2~6자리 순수 기술 약어 패턴 (예: JWT, AES, RSA, RFC 등 자동 허용)
 ACRONYM_PATTERN = re.compile(r"^[A-Z0-9]{2,8}$")
 
+# 숫자 및 단위 표기 패턴 (예: 0ms, 200ms, 15s, 1GB, 50MB, 100% 등 번역투가 아닌 수치 괄호 표기 허용)
+NUMERIC_UNIT_PATTERN = re.compile(r"^\d+(?:\.\d+)?\s*(?:ms|s|m|h|ns|us|b|kb|mb|gb|tb|bps|kbps|mbps|gbps|hz|khz|mhz|ghz|px|pt|em|rem|%|건|회|개|명|곳|초|분|시간)?$", re.IGNORECASE)
+
 
 def load_whitelist() -> set[str]:
     """pipeline/config/whitelist.json에서 확장 화이트리스트 로드"""
@@ -150,14 +153,14 @@ def check_emojis(content: str) -> list[str]:
 
 
 def is_allowed_english(text: str, whitelist: set[str]) -> bool:
-    """영단어가 공인 약어, 화이트리스트, 또는 정규식 약어 패턴에 부합하는지 검증"""
+    """영단어가 공인 약어, 화이트리스트, 수치 단위, 또는 정규식 약어 패턴에 부합하는지 검증"""
     stripped = text.strip()
-    if stripped in whitelist or ACRONYM_PATTERN.match(stripped):
+    if stripped in whitelist or ACRONYM_PATTERN.match(stripped) or NUMERIC_UNIT_PATTERN.match(stripped):
         return True
 
     # 공백이나 특수문자(-, /, &, _)로 구분된 복합 토큰 분할 검사
     tokens = [t.strip() for t in re.split(r"[\s\-\/\&\_]+", stripped) if t.strip()]
-    return bool(tokens and all(t in whitelist or ACRONYM_PATTERN.match(t) for t in tokens))
+    return bool(tokens and all(t in whitelist or ACRONYM_PATTERN.match(t) or NUMERIC_UNIT_PATTERN.match(t) for t in tokens))
 
 
 def check_parentheses_english(content: str) -> list[str]:
