@@ -3,7 +3,7 @@ title: "주소의 설계와 네트워크 격리 — CIDR·서브네팅과 VLAN·
 slug: "c02-network-zt-day02"
 description: "IPv4 32비트 구조와 사설 IP 판별, ipaddress 모듈 기반 VLSM 가변 서브네팅, 그리고 Cisco Packet Tracer를 활용한 VLAN 2계층 하드 격리 및 3계층 Inter-VLAN 라우팅 실증"
 pubDate: 2026-09-04
-tags: ["Network", "Subnetting", "CIDR", "VLAN", "Routing", "Packet Tracer", "Zero Trust"]
+tags: ["Network", "Zero-Trust", "Packet-Analysis"]
 category: "네트워크·Zero Trust"
 status: "published"
 ---

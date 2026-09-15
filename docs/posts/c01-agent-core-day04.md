@@ -3,7 +3,7 @@ title: "외부 REST API 연동을 통한 위협 IP 인텔리전스 인리치먼�
 slug: "c01-agent-core-day04"
 description: "requests 기반 실시간 IP 지리 정보 조회, HTTP 타임아웃 방어 및 멱등성을 고려한 경보 데이터 보강 계층 리팩터링 기록"
 pubDate: 2026-08-28
-tags: ["Python", "Security Automation", "Threat Intelligence", "REST API", "Refactoring"]
+tags: ["Python", "Security-Automation", "FastAPI", "Engineering-Practice"]
 category: "AI·보안 자동화"
 status: "published"
 ---

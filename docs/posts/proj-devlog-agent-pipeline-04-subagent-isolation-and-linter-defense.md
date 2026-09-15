@@ -3,7 +3,7 @@ title: "DevLog 에이전트 파이프라인: 서브에이전트 컨텍스트 격
 slug: "proj-devlog-agent-pipeline-04-subagent-isolation-and-linter-defense"
 description: "단일 세션 컨텍스트 과부하 극복을 위한 1회용 서브에이전트 격리, 본문 전문 생략 기반 토큰 최적화 및 하네스 린터 4중 심층 방어 구축 회고"
 pubDate: 2026-09-01
-tags: ["Project", "DevLog Pipeline", "Subagent", "Linter", "Defense-in-Depth", "Architecture", "Optimization"]
+tags: ["DevLog-Pipeline", "Agent-AI", "Architecture", "Engineering-Practice"]
 category: "프로젝트/DevLog 자율 에이전트"
 status: "published"
 ---

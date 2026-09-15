@@ -3,7 +3,7 @@ title: "보고하는 관제 데스크 — 보안 관제 요약과 프롬프트 �
 slug: "c01-agent-core-day07"
 description: "보안 이벤트 처리 기록을 위험도순으로 정렬하고 LLM 프롬프트 체이닝과 병렬 I/O 최적화를 결합해 결정론적 마크다운 관제 보고서를 자동 생성하는 파이프라인 구축"
 pubDate: 2026-09-01
-tags: ["Python", "Security Automation", "LLM", "Prompt Chaining", "Markdown"]
+tags: ["Python", "Security-Automation", "Agent-AI", "Engineering-Practice"]
 category: "AI·보안 자동화"
 status: "published"
 ---

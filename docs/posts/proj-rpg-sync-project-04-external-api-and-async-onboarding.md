@@ -5,13 +5,7 @@ description: "디스코드 게이트웨이의 엄격한 3초 인터랙션 타임
 pubDate: 2026-09-04
 category: "프로젝트/실시간 RPG 동기화 엔진"
 status: "published"
-tags:
-  - Discord.py
-  - Mojang API
-  - AsyncIO
-  - Redis
-  - FastAPI
-  - Onboarding
+tags: ["Python", "FastAPI", "Distributed-System", "Troubleshooting"]
 ---
 
 # RPG Sync 프로젝트: 3초 타임아웃 제약과 외부 API 장애 격리를 위한 비동기 온보딩 파이프라인 구축

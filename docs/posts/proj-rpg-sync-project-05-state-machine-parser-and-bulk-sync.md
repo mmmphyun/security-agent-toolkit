@@ -5,13 +5,7 @@ description: "디스코드 쓰레드의 비정형 마크다운 문서를 계층�
 pubDate: 2026-09-09
 category: "프로젝트/실시간 RPG 동기화 엔진"
 status: "published"
-tags:
-  - Python
-  - Text-Parser
-  - Stream-Parser
-  - Bulk-Sync
-  - Architecture-Tradeoffs
-  - Data-Integrity
+tags: ["Python", "Data-Engineering", "Distributed-System", "Architecture"]
 ---
 
 # 계층형 컨텍스트 파서와 동적 템플릿 기반 대량 동기화: 비정형 텍스트의 정형화와 무중단 데이터 파이프라인

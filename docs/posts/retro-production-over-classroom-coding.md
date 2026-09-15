@@ -3,7 +3,7 @@ title: "학부 과제 코딩보다 배포와 운영 한 번이 남긴 것"
 slug: "retro-production-over-classroom-coding"
 description: "학부식 일회성 과제 코딩의 한계와 AI 쇼크로 인한 방황을 거쳐, 실제 배포와 운영, 그리고 에이전트 하네스 엔지니어링으로 나아가기까지의 회고"
 pubDate: 2026-09-15
-tags: ["Retrospective", "Architecture", "Governance", "Engineering"]
+tags: ["Retrospective", "Architecture", "Engineering-Practice"]
 category: "회고"
 status: "published"
 ---

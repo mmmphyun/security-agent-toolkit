@@ -3,7 +3,7 @@ title: "Flask 웹훅과 Schedule 기반 실시간 보안 경보 수신 및 디�
 slug: "c01-agent-core-day05"
 description: "고차 함수와 콜백 기반 스케줄러, Flask 동적 라우트 app.url_map 추출, 웹훅 I/O 병목 분석 및 단독 설계 의사결정 기록"
 pubDate: 2026-08-29
-tags: ["Python", "Security Automation", "Flask", "Schedule", "Webhook", "Architecture"]
+tags: ["Python", "Security-Automation", "Architecture", "Engineering-Practice"]
 category: "AI·보안 자동화"
 status: "published"
 ---

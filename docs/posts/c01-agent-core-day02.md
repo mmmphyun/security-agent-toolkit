@@ -3,7 +3,7 @@ title: "CSV 로그 결손 방어와 zip(strict=True) 예외 처리 및 I/O 분�
 slug: "c01-agent-core-day02"
 description: "zip(strict=True)를 활용한 손상된 CSV 로그 예외 처리와 로깅 체계 구축, 코드 최적화를 통한 화면 출력 책임 분리 기록"
 pubDate: 2026-08-26
-tags: ["Python", "Security Automation", "CSV Parsing", "Refactoring", "Logging"]
+tags: ["Python", "Security-Automation", "Data-Engineering", "Engineering-Practice"]
 category: "AI·보안 자동화"
 status: "published"
 ---

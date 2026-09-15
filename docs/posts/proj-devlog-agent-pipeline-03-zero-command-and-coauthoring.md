@@ -3,7 +3,7 @@ title: "DevLog 에이전트 파이프라인: Push 트리거와 대화형 공동 
 slug: "proj-devlog-agent-pipeline-03-zero-command-and-coauthoring"
 description: "GitHub Actions Cron 지연 극복을 위한 Scheduled Tasks 전환, 제로 커맨드 초안 대기 및 에이전트 실시간 공동 저작 설계 회고"
 pubDate: 2026-08-30
-tags: ["Project", "DevLog Pipeline", "Co-Authoring", "Automation", "Architecture"]
+tags: ["DevLog-Pipeline", "Agent-AI", "Architecture", "Engineering-Practice"]
 category: "프로젝트/DevLog 자율 에이전트"
 status: "published"
 ---

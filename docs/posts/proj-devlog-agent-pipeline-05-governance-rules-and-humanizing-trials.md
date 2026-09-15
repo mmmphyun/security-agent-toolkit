@@ -3,7 +3,7 @@ title: "DevLog 에이전트 파이프라인: AI 글쓰기 왜곡 방어와 3중 
 slug: "proj-devlog-agent-pipeline-05-governance-rules-and-humanizing-trials"
 description: "3인칭 대상화와 가상 코드 창작 강박을 극복하기 위한 결정론적 린터 방어선, 3대 실체적 원천 기반 다형적 거버넌스 및 타이포그래피 엔지니어링 회고"
 pubDate: 2026-09-02
-tags: ["Project", "DevLog Pipeline", "Governance", "Linter", "Humanize", "Architecture"]
+tags: ["DevLog-Pipeline", "Architecture", "Engineering-Practice", "Retrospective"]
 category: "프로젝트/DevLog 자율 에이전트"
 status: "published"
 ---
