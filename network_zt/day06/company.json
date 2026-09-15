@@ -1,0 +1,16 @@
+{
+  "users": {
+    "minsu":  {"name": "김민수", "password": "minsu-2026", "role": "sales",         "employed": true,  "customers": ["B전자"]},
+    "jiyeon": {"name": "박지연", "password": "jy-admin-77", "role": "account_admin", "employed": true,  "customers": []},
+    "hana":   {"name": "이하나", "password": "hana-0311",  "role": "sales",         "employed": false, "customers": ["C상사"]}
+  },
+  "devices": {
+    "NB-0417": {"owner": "minsu",  "managed": true},
+    "NB-0522": {"owner": "jiyeon", "managed": true},
+    "NB-0333": {"owner": "hana",   "managed": true}
+  },
+  "contracts": {
+    "C-1001": {"customer": "B전자", "title": "B전자 유지보수 계약", "amount": "3,200만 원"},
+    "C-1002": {"customer": "C상사", "title": "C상사 구축 계약",     "amount": "8,500만 원"}
+  }
+}
