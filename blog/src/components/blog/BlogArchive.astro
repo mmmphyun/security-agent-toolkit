@@ -709,14 +709,22 @@ const networkLinks = Array.from(edgeMap.values());
         listObserver.observe(listLoadMore);
       }
 
+      function syncCategoryTabs() {
+        categoryTabButtons.forEach((tab) => {
+          const tabCategory = tab.getAttribute("data-category-tab") ?? "all";
+          const isAll = tabCategory === "all" && !activeCategory;
+          const isMatch = activeCategory && (tabCategory.toLowerCase() === activeCategory || (tabCategory === "프로젝트" && activeCategory.startsWith("프로젝트")));
+          tab.classList.toggle("blog-tab--active", Boolean(isAll || isMatch));
+        });
+      }
+
       categoryTabButtons.forEach((tab) => {
         tab.addEventListener("click", () => {
           const tabCategory = tab.getAttribute("data-category-tab") ?? "all";
           activeCategory = tabCategory === "all" ? "" : tabCategory.toLowerCase();
           activeTag = "";
           currentPage = 1;
-          categoryTabButtons.forEach((t) => t.classList.remove("blog-tab--active"));
-          tab.classList.add("blog-tab--active");
+          syncCategoryTabs();
           setView("posts");
           applyFilters(true);
           updateUrlState();
@@ -728,6 +736,7 @@ const networkLinks = Array.from(edgeMap.values());
           activeCategory = (button as HTMLElement).dataset.categoryFilter ?? "";
           activeTag = "";
           currentPage = 1;
+          syncCategoryTabs();
           setView("posts");
           applyFilters(true);
           updateUrlState();
@@ -748,6 +757,7 @@ const networkLinks = Array.from(edgeMap.values());
 
       const handlePopState = () => {
         readUrlState();
+        syncCategoryTabs();
         applyFilters(false);
       };
       window.addEventListener("popstate", handlePopState);
@@ -759,6 +769,7 @@ const networkLinks = Array.from(edgeMap.values());
       };
 
       readUrlState();
+      syncCategoryTabs();
       setView(activeView);
       setLayout("bento");
       applyFilters(false);
