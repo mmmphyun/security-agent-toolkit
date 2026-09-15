@@ -8,8 +8,6 @@ status: "published"
 tags: ["Python", "FastAPI", "Distributed-System", "Troubleshooting"]
 ---
 
-# RPG Sync 프로젝트: 3초 타임아웃 제약과 외부 API 장애 격리를 위한 비동기 온보딩 파이프라인 구축
-
 ## 1. 개요 및 학습 개념 요약
 
 성인 RPG 커뮤니티의 운영에서 유저 온보딩은 보안과 편의성이 가장 첨예하게 충돌하는 관문이었다.
