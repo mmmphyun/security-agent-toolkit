@@ -183,7 +183,7 @@ const networkLinks = Array.from(edgeMap.values());
   showFooter={false}
   mainClass="tistory-main"
 >
-  <div class="blog-archive" data-blog-archive data-initial-view={initialView} data-initial-tag={initialTagValue}>
+  <div class="blog-archive" data-blog-archive data-initial-view={initialView} data-initial-tag={initialTagValue} data-blog-base={withBase('/blog/')}>
     <header class="blog-topbar">
       <a href={withBase('/blog/')} class="blog-brand"><span>{SITE.brand.name}</span><strong>{SITE.brand.accent}</strong></a>
       <label class="blog-search" aria-label="Search posts">
@@ -201,7 +201,7 @@ const networkLinks = Array.from(edgeMap.values());
       <button type="button" class="blog-tab" data-category-tab="자동 대응 soar">5과목: SOAR</button>
       <button type="button" class="blog-tab" data-category-tab="프로젝트">프로젝트</button>
       <button type="button" class="blog-tab" data-category-tab="회고">회고</button>
-      <a class:list={["blog-tab", initialView === "tags" && "blog-tab--active"]} href={withBase('/blog/tags/')}>태그 아카이브</a>
+      <a class:list={["blog-tab", initialView === "tags" && "blog-tab--active"]} href={withBase('/blog/tags/')} data-tag-archive-link>태그 아카이브</a>
     </nav>
 
     <div class="blog-layout">
@@ -418,6 +418,8 @@ const networkLinks = Array.from(edgeMap.values());
       const tagCloudMore = root?.querySelector("[data-tag-cloud-more]");
       const listLoadMore = root?.querySelector("[data-list-load-more]");
       const categoryTabButtons = Array.from(document.querySelectorAll("[data-category-tab]"));
+      const tagArchiveLink = root?.querySelector("[data-tag-archive-link]");
+      const blogBase = (root as HTMLElement)?.dataset.blogBase ?? "/blog/";
       const BENTO_PAGE_SIZE = 7;
       const LIST_BATCH_SIZE = 12;
       let listLimit = LIST_BATCH_SIZE;
@@ -443,7 +445,8 @@ const networkLinks = Array.from(edgeMap.values());
         if (activeTag) params.set("tag", activeTag);
         if (currentPage > 1) params.set("page", String(currentPage));
         const newQuery = params.toString();
-        const newUrl = newQuery ? `${window.location.pathname}?${newQuery}` : window.location.pathname;
+        const base = blogBase || window.location.pathname;
+        const newUrl = newQuery ? `${base}?${newQuery}` : base;
         window.history.replaceState({}, "", newUrl);
       }
 
@@ -710,9 +713,13 @@ const networkLinks = Array.from(edgeMap.values());
       }
 
       function syncCategoryTabs() {
+        const inTagView = activeView === "tags" && !activeCategory;
+        if (tagArchiveLink) {
+          tagArchiveLink.classList.toggle("blog-tab--active", inTagView);
+        }
         categoryTabButtons.forEach((tab) => {
           const tabCategory = tab.getAttribute("data-category-tab") ?? "all";
-          const isAll = tabCategory === "all" && !activeCategory;
+          const isAll = tabCategory === "all" && !activeCategory && !inTagView;
           const isMatch = activeCategory && (tabCategory.toLowerCase() === activeCategory || (tabCategory === "프로젝트" && activeCategory.startsWith("프로젝트")));
           tab.classList.toggle("blog-tab--active", Boolean(isAll || isMatch));
         });
@@ -721,6 +728,12 @@ const networkLinks = Array.from(edgeMap.values());
       categoryTabButtons.forEach((tab) => {
         tab.addEventListener("click", () => {
           const tabCategory = tab.getAttribute("data-category-tab") ?? "all";
+          if (activeView === "tags" || window.location.pathname.includes("/tags")) {
+            const targetUrl = tabCategory === "all" ? blogBase : `${blogBase}?category=${encodeURIComponent(tabCategory)}`;
+            window.location.href = targetUrl;
+            return;
+          }
+
           activeCategory = tabCategory === "all" ? "" : tabCategory.toLowerCase();
           activeTag = "";
           currentPage = 1;
@@ -733,7 +746,14 @@ const networkLinks = Array.from(edgeMap.values());
 
       categoryButtons.forEach((button) => {
         button.addEventListener("click", () => {
-          activeCategory = (button as HTMLElement).dataset.categoryFilter ?? "";
+          const selectedCat = (button as HTMLElement).dataset.categoryFilter ?? "";
+          if (activeView === "tags" || window.location.pathname.includes("/tags")) {
+            const targetUrl = selectedCat ? `${blogBase}?category=${encodeURIComponent(selectedCat)}` : blogBase;
+            window.location.href = targetUrl;
+            return;
+          }
+
+          activeCategory = selectedCat;
           activeTag = "";
           currentPage = 1;
           syncCategoryTabs();

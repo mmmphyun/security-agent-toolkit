@@ -3,7 +3,7 @@ title: "이름의 해석과 경계 보안 — DNS 계층 구조와 Anycast 프�
 slug: "c02-network-zt-day03"
 description: "Packet Tracer 기반 DNS 및 웹 서버 분리망 실증, 계층적 네임서버 위임과 RFC 1034 CNAME 제약 분석, 그리고 Anycast 프록시 기반 오리진 은닉 및 캐시 무결성 방어 전략"
 pubDate: 2026-09-07
-tags: ["Network", "DNS", "Packet Tracer", "Nameserver", "Cache", "Zero Trust", "Anycast"]
+tags: ["Network", "Zero-Trust", "Packet-Analysis"]
 category: "네트워크·Zero Trust"
 status: "published"
 ---

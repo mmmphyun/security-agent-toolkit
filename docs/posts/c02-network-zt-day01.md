@@ -3,7 +3,7 @@ title: "패킷의 세계 — OSI 7계층과 3-way Handshake 기반 장애 격리
 slug: "c02-network-zt-day01"
 description: "Wireshark 패킷 캡처와 헤더 역공학, 계층적 네트워크 장애 사다리 진단, SYN Flooding 탐지 및 로컬 포트 공격 표면 점검"
 pubDate: 2026-09-03
-tags: ["Network", "OSI 7 Layer", "TCP/IP", "Wireshark", "Packet Analysis", "SYN Flood", "Zero Trust"]
+tags: ["Network", "Zero-Trust", "Packet-Analysis"]
 category: "네트워크·Zero Trust"
 status: "published"
 ---

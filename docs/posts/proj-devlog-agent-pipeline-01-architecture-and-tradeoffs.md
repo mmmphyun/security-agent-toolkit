@@ -3,7 +3,7 @@ title: "DevLog 에이전트 파이프라인: 유지보수 비용 0원과 GitHub 
 slug: "proj-devlog-agent-pipeline-01-architecture-and-tradeoffs"
 description: "학습 기록 자동화를 위한 Everything-as-Code 기반 0원 아키텍처, 전용 대시보드 대신 GitHub Native 채택 및 Astro Bento 정적 블로그 구축 회고"
 pubDate: 2026-08-30
-tags: ["Project", "DevLog Pipeline", "Automation", "CI/CD", "Architecture"]
+tags: ["DevLog-Pipeline", "Agent-AI", "Architecture", "Engineering-Practice"]
 category: "프로젝트/DevLog 자율 에이전트"
 status: "published"
 ---

@@ -3,7 +3,7 @@ title: "하나로 잇는 관제 데스크 — 설정 분리와 예외 격리 기
 slug: "c01-agent-core-day08"
 description: "경보 수집부터 LLM 판단, 휴먼 인터랙티브 승인 게이트, 마크다운 보고서 생성 및 웹훅 알림까지 관제 파이프라인 전 단계를 유기적으로 결합하고 결함을 방어하는 종합 아키텍처 설계"
 pubDate: 2026-09-02
-tags: ["Python", "Security Automation", "Pipeline Orchestration", "Configuration Management", "Exception Handling", "Code Review", "Unit Testing"]
+tags: ["Python", "Security-Automation", "Architecture", "Engineering-Practice"]
 category: "AI·보안 자동화"
 status: "published"
 ---

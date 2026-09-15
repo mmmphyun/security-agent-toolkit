@@ -3,7 +3,7 @@ title: "RPG Sync 프로젝트: 분산 상태 동기화, 옵저버빌리티 구�
 slug: "proj-rpg-sync-project-02-troubleshooting-and-collaboration"
 description: "조용한 실패 방어를 위한 관제 알림, Redis Pub/Sub과 Tailscale 기반 분산 화이트리스트 동기화, 도그푸딩을 통한 현장 중심 협업 회고"
 pubDate: 2026-09-01
-tags: ["Troubleshooting", "Redis", "Tailscale", "Observability", "Dogfooding", "Requirements-Engineering"]
+tags: ["Distributed-System", "Troubleshooting", "Engineering-Practice"]
 category: "프로젝트/실시간 RPG 동기화 엔진"
 status: "published"
 ---

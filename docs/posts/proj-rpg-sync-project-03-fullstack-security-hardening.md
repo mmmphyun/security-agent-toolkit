@@ -3,14 +3,16 @@ title: "RPG Sync 프로젝트: 공격자의 시선으로 구축한 웹 보안 �
 slug: "proj-rpg-sync-project-03-fullstack-security-hardening"
 description: "학부 네트워크 및 웹 보안 이론을 라이브 서비스에 셀프 레드티밍하여 도출한 프론트엔드 XSS 소독, 커스텀 ASGI 보안 미들웨어, HSTS 락아웃 방어 및 보안 거버넌스 구축 회고"
 pubDate: 2026-09-02
-tags: ["Web-Security", "XSS", "CSRF", "Clickjacking", "HSTS", "FastAPI", "DOMPurify", "Self-RedTeaming"]
+tags: ["FastAPI", "Web-Security", "Engineering-Practice"]
 category: "프로젝트/실시간 RPG 동기화 엔진"
 status: "published"
 ---
 
 ## 1. 개요 및 프로젝트 배경
 
-[Part 1 아키텍처 포스트](/security-agent-toolkit/blog/proj-rpg-sync-project-01-problem-definition-and-architecture/)에서 디스코드 중심 SSOT 파이프라인을 설계하고, [Part 2 트러블슈팅 포스트](/security-agent-toolkit/blog/proj-rpg-sync-project-02-troubleshooting-and-collaboration/)에서 분산 상태 동기화와 관제 체계를 완성했다. 시스템이 안정화되어 실제 유저들이 직업 리뷰, 자유 게시판, 팁 공략을 활발히 등록하기 시작하면서 새로운 엔지니어링 과제가 부상했다. 바로 사용자 입력 데이터의 확장과 웹 대시보드 노출에 따른 애플리케이션 보안 위협이었다.
+[Part 1 아키텍처 포스트](/security-agent-toolkit/blog/proj-rpg-sync-project-01-problem-definition-and-architecture/)에서 디스코드 중심 SSOT 파이프라인을 설계하고, [Part 2 트러블슈팅 포스트](/security-agent-toolkit/blog/proj-rpg-sync-project-02-troubleshooting-and-collaboration/)에서 분산 상태 동기화와 관제 체계를 완성했다.
+
+시스템이 안정화되어 실제 유저들이 직업 리뷰, 자유 게시판, 팁 공략을 활발히 등록하기 시작하면서 새로운 엔지니어링 과제가 부상했다. 바로 사용자 입력 데이터의 확장과 웹 대시보드 노출에 따른 애플리케이션 보안 위협이었다.
 
 프로젝트 개발 당시 학부 과정에서 네트워크 및 웹 보안 과목을 수강하고 있었다. 교재와 강의에서 다루는 공격 벡터인 교차 사이트 스크립팅 XSS, 교차 사이트 요청 위조 CSRF, 클릭재킹, MIME 스니핑, HSTS 미적용 취약점 등을 단순한 시험 대비용 지식으로 소비하지 않고, 실제 라이브 운영 중인 시스템에 공격자의 시선으로 침투해보는 셀프 레드티밍을 감행했다.
 
@@ -52,7 +54,9 @@ flowchart TD
 
 프레임워크가 제공하는 기본 편의 기능에만 의존했던 초기 구현에서는 세 가지 핵심 공격 표면이 존재했다.
 
-첫째, 비동기 API 통신 기반의 동적 렌더링 환경에서 발생하는 클라이언트 사이드 XSS 취약점이었다. 서버 사이드 템플릿 엔진인 Jinja2는 HTML을 렌더링할 때 기본적으로 악성 태그를 이스케이프한다. 그러나 싱글 페이지 인터랙션을 위해 Fetch API로 JSON 데이터를 받아와 브라우저 단에서 템플릿 리터럴로 innerHTML을 구성할 때는 Jinja2의 보호막이 전혀 작동하지 않았다. 악의적인 스크립트가 포함된 직업 리뷰나 닉네임이 그대로 실행될 수 있는 구조였다.
+첫째, 비동기 API 통신 기반의 동적 렌더링 환경에서 발생하는 클라이언트 사이드 XSS 취약점이었다. 서버 사이드 템플릿 엔진인 Jinja2는 HTML을 렌더링할 때 기본적으로 악성 태그를 이스케이프한다.
+
+그러나 싱글 페이지 인터랙션을 위해 Fetch API로 JSON 데이터를 받아와 브라우저 단에서 템플릿 리터럴로 innerHTML을 구성할 때는 Jinja2의 보호막이 전혀 작동하지 않았다. 악의적인 스크립트가 포함된 직업 리뷰나 닉네임이 그대로 실행될 수 있는 구조였다.
 
 둘째, 상태 변경 요청에 대한 출처 검증의 허점이었다. 단순 도메인 문자열 접두사 비교 방식을 사용할 경우, 공격자가 허용 도메인 뒤에 공격자 도메인을 덧붙인 유사 도메인(예: `https://allowed-domain.com.attacker.com`)을 제작하여 CSRF 방어선을 무력화할 수 있었다.
 

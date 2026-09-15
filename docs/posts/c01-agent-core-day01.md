@@ -3,7 +3,7 @@ title: "문자열 파싱 정규화와 Counter를 활용한 무차별 대입 공�
 slug: "c01-agent-core-day01"
 description: "가변 공백 정규화와 collections.Counter를 활용하여 무차별 대입 공격 의심 계정을 추출하고 단일 책임 원칙으로 분리한 실습 기록"
 pubDate: 2026-08-25
-tags: ["Python", "Security Automation", "Log Parsing", "Counter"]
+tags: ["Python", "Security-Automation", "Data-Engineering", "Engineering-Practice"]
 category: "AI·보안 자동화"
 status: "published"
 ---
@@ -29,9 +29,10 @@ flowchart LR
 ```
 
 전체 처리 흐름은 명확한 책임을 기준으로 분리된다.
-1. `parse_log_data`: 멀티라인 문자열 로그를 줄 단위로 분리하고, 가변 공백을 처리하여 시간, 사용자명, 이벤트 유형, IP 주소로 구성된 딕셔너리 리스트를 생성한다.
-2. `find_suspects`: 이벤트 유형이 `login_failed`와 일치하는 대상자의 사용자 식별자만 추출하여 리스트로 반환한다.
-3. 집계 및 판정: `Counter` 객체로 사용자별 실패 빈도를 연산한 뒤, 사전 정의한 임계값(2회 이상)을 만족하는 계정만 필터링하여 이상 징후를 출력한다.
+
+- `parse_log_data`: 멀티라인 문자열 로그를 줄 단위로 분리하고, 가변 공백을 처리하여 시간, 사용자명, 이벤트 유형, IP 주소로 구성된 딕셔너리 리스트를 생성한다.
+- `find_suspects`: 이벤트 유형이 `login_failed`와 일치하는 대상자의 사용자 식별자만 추출하여 리스트로 반환한다.
+- 집계 및 판정: `Counter` 객체로 사용자별 실패 빈도를 연산한 뒤, 사전 정의한 임계값(2회 이상)을 만족하는 계정만 필터링하여 이상 징후를 출력한다.
 
 ## 3. 기본 구현의 한계점
 

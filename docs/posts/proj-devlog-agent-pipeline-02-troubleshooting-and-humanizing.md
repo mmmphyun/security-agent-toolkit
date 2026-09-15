@@ -3,7 +3,7 @@ title: "DevLog 에이전트 파이프라인: 런타임 트러블슈팅과 한국
 slug: "proj-devlog-agent-pipeline-02-troubleshooting-and-humanizing"
 description: "Astro 6와 Mermaid 렌더링 충돌 해결, 패키지 빌드 격리 및 im-not-ai 기반 한국어 룰북 레포 내재화 회고"
 pubDate: 2026-08-30
-tags: ["Project", "DevLog Pipeline", "Troubleshooting", "Astro", "Mermaid", "Humanize"]
+tags: ["DevLog-Pipeline", "Troubleshooting", "Engineering-Practice"]
 category: "프로젝트/DevLog 자율 에이전트"
 status: "published"
 ---

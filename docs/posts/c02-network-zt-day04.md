@@ -3,7 +3,7 @@ title: "VPN과 방화벽 — 원격 접속 암호화와 ASA 접근 통제 목록
 slug: "c02-network-zt-day04"
 description: "Packet Tracer 기반 원격 접속 VPN과 Cisco ASA 방화벽 연동 실증, 5-Tuple 기반 확장형 ACL과 룰 섀도잉 방어, 그리고 제로 트러스트 관점의 최소 권한 인가 아키텍처"
 pubDate: 2026-09-08
-tags: ["Network", "VPN", "Firewall", "ACL", "Packet Tracer", "Zero Trust", "Cisco ASA"]
+tags: ["Network", "Zero-Trust", "Packet-Analysis"]
 category: "네트워크·Zero Trust"
 status: "published"
 ---

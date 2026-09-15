@@ -3,7 +3,7 @@ title: "LLM 판단 기반 보안 관제 데스크와 AI 에이전트 도구 실�
 slug: "c01-agent-core-day06"
 description: "LLM 판단을 정형화된 JSON Schema로 강제하고 도구 실행에 검문 게이트를 적용한 AI 보안 관제 데스크 구축 및 Zero Trust 방어 아키텍처 분석"
 pubDate: 2026-08-31
-tags: ["Python", "Security Automation", "LLM", "Agent", "Zero Trust"]
+tags: ["Python", "Security-Automation", "Agent-AI", "Zero-Trust"]
 category: "AI·보안 자동화"
 status: "published"
 ---
