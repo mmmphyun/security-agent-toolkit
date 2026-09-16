@@ -18,6 +18,7 @@
     "NestJS", "Next.js", "React", "Vue", "Astro", "Pydantic", "SQLAlchemy", "Aiohttp",
     "Requests", "Pytest", "Part 1", "Part 2", "Part 3", "v1", "v2", "v3",
     "Wireshark", "tcpdump", "netstat", "ipconfig", "ifconfig", "traceroute", "tracert",
-    "ping", "nmap", "Scapy", "Ethernet", "Gateway", "Subnet"
+    "ping", "nmap", "Scapy", "Ethernet", "Gateway", "Subnet",
+    "K3s", "KEDA", "Ktor", "Kord", "Exposed", "Minecraft", "Paper", "Spigot", "Bukkit", "FinOps", "HPA", "TPS", "Next.js 14", "WSS", "CQRS"
   ]
 }

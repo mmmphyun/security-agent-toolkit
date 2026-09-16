@@ -69,6 +69,7 @@ COURSE_CATEGORY_MAP = {
 PROJECT_CATEGORY_MAP = {
     "proj-rpg-sync-project": "프로젝트/실시간 RPG 동기화 엔진",
     "proj-devlog-agent-pipeline": "프로젝트/DevLog 자율 에이전트",
+    "proj-ru-beacon": "프로젝트/마인크래프트 분산 연동 플랫폼",
 }
 
 

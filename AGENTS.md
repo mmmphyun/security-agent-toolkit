@@ -224,6 +224,7 @@ AI가 블로그 포스트를 생성할 때는 과목 실습과 자율 프로젝�
      | **5과목** | `c05-` | `soar_response` | `"자동 대응 SOAR"` |
      | **프로젝트 (RPG Sync)** | `proj-rpg-sync-` | `projects/rpg_sync_project` | `"프로젝트/실시간 RPG 동기화 엔진"` |
      | **프로젝트 (DevLog)** | `proj-devlog-` | `projects/devlog-agent-pipeline` | `"프로젝트/DevLog 자율 에이전트"` |
+     | **프로젝트 (Ru-Beacon)** | `proj-ru-beacon-` | `projects/ru-beacon` | `"프로젝트/마인크래프트 분산 연동 플랫폼"` |
      | **신규 프로젝트** | `proj-<name>-` | `projects/<name>` | `"프로젝트/<기술도메인명>"` (SSOT 사전 등록 필수) |
      | **엔지니어링 회고** | `retro-` | `docs/posts/retro-*.md` | `"회고"` 또는 `"엔지니어링 회고"` |
    - **프로젝트 아티클 명명 규칙:** 인위적인 `Part 1, 2` 기계적 번호 매기기를 지양하고, 해당 글이 다루는 핵심 엔지니어링 문제/주제 중심의 독립 아티클(Stand-alone Topic Article)로 제목과 슬러그를 명명.
