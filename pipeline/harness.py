@@ -7,6 +7,7 @@ pipeline.harness
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -237,6 +238,31 @@ def check_mermaid(content: str) -> list[str]:
                     errors.append(f"Mermaid 블록 #{idx} L{line_no}: 괄호([]) 또는 중괄호({{}})의 열림/닫힘 쌍이 일치하지 않습니다 ('{line}').")
 
     return errors
+
+
+def check_mermaid_complexity(content: str) -> list[str]:
+    """Mermaid 다이어그램 선 꼬임 및 과밀 위험 사전 감지 (권장 스타일 경고)"""
+    warnings = []
+    mermaid_blocks = re.findall(r"```mermaid\s*\n(.*?)\n```", content, re.DOTALL)
+    for idx, block in enumerate(mermaid_blocks, 1):
+        if not ("flowchart" in block or "graph" in block):
+            continue
+        # 노드 선언 추출: word[...] or word(...) or word{...}
+        node_ids = set(re.findall(r"\b([a-zA-Z0-9_-]+)\s*(?:\[|\(|\{)", block))
+        # 엣지 연결선 추출: -->, -.->, ==>, etc.
+        edges = re.findall(r"(-->|-.->|==>|--\s*\"[^\"]*\"\s*-->)", block)
+
+        if len(node_ids) >= 12:
+            warnings.append(
+                f"Mermaid 블록 #{idx}: 단일 순서도 내 노드가 {len(node_ids)}개로 과밀합니다. "
+                "브라우저 렌더러에서 선 꼬임이 발생할 수 있으므로, 10개 이하로 서브그래프를 분리하거나 마크다운 구조화 표(Table)로 대체를 권장합니다."
+            )
+        if len(node_ids) > 0 and (len(edges) / len(node_ids)) >= 1.7:
+            warnings.append(
+                f"Mermaid 블록 #{idx}: 노드 대비 엣지 비율({len(edges)}/{len(node_ids)}={len(edges)/len(node_ids):.1f})이 높아 스파게티 연결 위험이 있습니다. "
+                "단방향 계층화(flowchart LR) 또는 시퀀스 다이어그램(sequenceDiagram) 전환을 권장합니다."
+            )
+    return warnings
 
 
 def check_local_links(content: str) -> list[str]:
@@ -554,8 +580,70 @@ def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]
     topic_warnings = check_duplicate_topics(content, file_path)
     soft_warnings.extend(topic_warnings)
 
+    mermaid_warnings = check_mermaid_complexity(content)
+    soft_warnings.extend(mermaid_warnings)
+
     is_valid = len(hard_errors) == 0
     return is_valid, hard_errors, soft_warnings
+
+
+def check_git_branch_status(repo_root: Path | None = None) -> tuple[bool, str]:
+    """
+    현재 Git 작업 브랜치 무결성 검증 (하드 가드)
+    1. main/master 브랜치 직접 작업 및 커밋 차단
+    2. 원격 추적이 삭제된([gone]) 과거 머지 브랜치 재사용 차단
+    3. Detached HEAD 상태 차단
+    """
+    cwd = str(repo_root) if repo_root else None
+    try:
+        res = subprocess.run(
+            ["git", "branch", "-vv"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except Exception as e:
+        return False, f"Git 브랜치 정보 조회 실패: {e}"
+
+    lines = res.stdout.splitlines()
+    current_line = None
+    for line in lines:
+        if line.startswith("*"):
+            current_line = line
+            break
+
+    if not current_line:
+        return False, "현재 체크아웃된 Git 브랜치를 식별할 수 없습니다."
+
+    # Detached HEAD 검출: * (HEAD detached at ...)
+    if "(HEAD detached" in current_line:
+        return False, "현재 Git이 Detached HEAD 상태입니다. 작업 전 최신 origin/main에서 신규 브랜치를 분기하십시오."
+
+    # 브랜치명 추출: * <branch_name> <commit_hash> [...]
+    match = re.match(r"^\*\s+(\S+)", current_line)
+    if not match:
+        return False, f"브랜치명 파싱 실패: '{current_line}'"
+
+    branch_name = match.group(1)
+
+    # 1. main/master 브랜치 직접 작업 차단
+    if branch_name in ("main", "master"):
+        return False, (
+            f"현재 브랜치가 보호 브랜치('{branch_name}')입니다. "
+            "main 브랜치 직접 작업 및 커밋은 엄격히 금지됩니다. "
+            "최신 origin/main에서 신규 작업 브랜치를 분기(git switch -c <branch> origin/main)하십시오."
+        )
+
+    # 2. [origin/...: gone] 과거 머지 브랜치 재사용 차단
+    if ": gone]" in current_line or ": gone," in current_line:
+        return False, (
+            f"현재 브랜치('{branch_name}')는 이미 원격에서 머지되어 추적이 삭제된([gone]) 브랜치입니다. "
+            "머지 완료 브랜치 재사용은 엄격히 금지됩니다. "
+            "최신 origin/main에서 신규 작업 브랜치를 분기하십시오."
+        )
+
+    return True, f"정상 작업 브랜치 확인 완료: '{branch_name}'"
 
 
 EXCLUDED_ROOT_DIRS = {
@@ -672,12 +760,23 @@ def main():
     if len(sys.argv) < 2:
         print("사용법:")
         print("  1. 하네스 검증: python harness.py <검증할_마크다운_파일경로>")
-        print("  2. 대기 타겟 스캔: python harness.py --scan-pending")
-        print("  3. 커리큘럼 컨텍스트 조회: python harness.py --fetch-curriculum <course_id> <day_id>")
-        print("  4. 프로젝트 컨텍스트 조회: python harness.py --fetch-project <project_name> <note_file>")
+        print("  2. 브랜치 가드 검증: python harness.py --check-branch")
+        print("  3. 대기 타겟 스캔: python harness.py --scan-pending")
+        print("  4. 커리큘럼 컨텍스트 조회: python harness.py --fetch-curriculum <course_id> <day_id>")
+        print("  5. 프로젝트 컨텍스트 조회: python harness.py --fetch-project <project_name> <note_file>")
         sys.exit(1)
 
     arg = sys.argv[1]
+
+    if arg == "--check-branch":
+        repo_root = Path(__file__).resolve().parent.parent
+        ok, msg = check_git_branch_status(repo_root)
+        if ok:
+            print(f"[통과] {msg}")
+            sys.exit(0)
+        else:
+            print(f"[하드 에러] {msg}")
+            sys.exit(1)
 
     if arg in ("--scan-pending", "--list-pending"):
         repo_root = Path(__file__).resolve().parent.parent
@@ -727,6 +826,16 @@ def main():
         sys.exit(0)
 
     target_path = Path(arg)
+    repo_root = Path(__file__).resolve().parent.parent
+
+    # 로컬 환경에서 마크다운 검증 시 브랜치 가드 사전 수행 (CI 환경 예외)
+    import os
+    if os.environ.get("CI") != "true" and os.environ.get("GITHUB_ACTIONS") != "true":
+        is_branch_ok, branch_msg = check_git_branch_status(repo_root)
+        if not is_branch_ok:
+            print(f"[하드 에러] 브랜치 거버넌스 위반: {branch_msg}")
+            sys.exit(1)
+
     is_valid, hard_errors, soft_warnings = validate_markdown_file(target_path)
 
     print(f"=== 하네스 검증 시작: {target_path.name} ===")

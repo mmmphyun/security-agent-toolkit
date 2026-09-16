@@ -1,0 +1,9 @@
+﻿#!/bin/sh
+# Git Pre-commit Hook: 작업 브랜치 무결성 검증 (하드 가드)
+# main/master 직접 커밋 및 원격 삭제([gone]) 브랜치 커밋 차단
+
+uv run python pipeline/harness.py --check-branch
+if [ $? -ne 0 ]; then
+    echo "[오류] 커밋이 차단되었습니다. 작업 브랜치를 확인하십시오."
+    exit 1
+fi
