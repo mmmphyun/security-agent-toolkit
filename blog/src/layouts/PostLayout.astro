@@ -294,6 +294,12 @@ const numberedListStart = (items: Block[], index: number) => {
         startOnLoad: false,
         theme: (isDark ? "dark" : "default") as any,
         securityLevel: "loose" as any,
+        flowchart: {
+          curve: "linear",
+          nodeSpacing: 50,
+          rankSpacing: 60,
+          padding: 15,
+        },
         themeVariables: isDark ? {
           darkMode: true,
           background: "#18181b",

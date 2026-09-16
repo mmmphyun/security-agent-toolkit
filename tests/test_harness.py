@@ -1,10 +1,14 @@
 import unittest
 from pathlib import Path
 
+from unittest.mock import MagicMock, patch
+
 from pipeline.harness import (
     check_ai_cliches,
     check_emojis,
+    check_git_branch_status,
     check_mermaid,
+    check_mermaid_complexity,
     check_parentheses_english,
     check_required_sections,
     clean_markdown_fences,
@@ -68,6 +72,43 @@ class TestPipelineHarness(unittest.TestCase):
             self.assertIn("target_slug", item)
             self.assertIn("expected_file", item)
 
+    def test_check_mermaid_complexity(self):
+        # 1. 단순 다이어그램 (경고 0건)
+        simple_block = "```mermaid\nflowchart TD\n  A --> B --> C\n```"
+        self.assertEqual(len(check_mermaid_complexity(simple_block)), 0)
+
+        # 2. 노드 12개 이상 과밀 다이어그램 (경고 발생)
+        crowded_lines = ["flowchart TD"] + [f"  N{i}[Node {i}] --> N{i+1}" for i in range(13)]
+        crowded_block = f"```mermaid\n{chr(10).join(crowded_lines)}\n```"
+        warnings = check_mermaid_complexity(crowded_block)
+        self.assertGreater(len(warnings), 0)
+        self.assertIn("과밀합니다", warnings[0])
+
+    @patch("subprocess.run")
+    def test_check_git_branch_status(self, mock_run):
+        # 1. 정상 작업 브랜치
+        mock_run.return_value = MagicMock(stdout="* feat/test-branch 1234abc [origin/feat/test-branch] commit msg\n  main abc1234 [origin/main] commit")
+        ok, msg = check_git_branch_status()
+        self.assertTrue(ok)
+        self.assertIn("feat/test-branch", msg)
+
+        # 2. main 브랜치 직접 작업 차단
+        mock_run.return_value = MagicMock(stdout="* main 1234abc [origin/main] latest commit\n  feat/other 5678def commit")
+        ok, msg = check_git_branch_status()
+        self.assertFalse(ok)
+        self.assertIn("보호 브랜치('main')", msg)
+
+        # 3. 원격 삭제([gone]) 브랜치 재사용 차단
+        mock_run.return_value = MagicMock(stdout="* feat/old-merged 1234abc [origin/feat/old-merged: gone] past commit\n  main abc1234 commit")
+        ok, msg = check_git_branch_status()
+        self.assertFalse(ok)
+        self.assertIn("[gone]", msg)
+
+        # 4. Detached HEAD 상태 차단
+        mock_run.return_value = MagicMock(stdout="* (HEAD detached at 1234abc) past commit\n  main abc1234 commit")
+        ok, msg = check_git_branch_status()
+        self.assertFalse(ok)
+        self.assertIn("Detached HEAD", msg)
 
 
 if __name__ == "__main__":
