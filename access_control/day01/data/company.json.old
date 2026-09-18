@@ -1,0 +1,14 @@
+{
+  "users": {
+    "minsu":  {"name": "김민수", "role": "sales",         "employed": true,  "customers": ["B전자", "C상사"]},
+    "jiyeon": {"name": "박지연", "role": "account_admin", "employed": true,  "customers": []},
+    "hana":   {"name": "이하나", "role": "sales",         "employed": false, "customers": ["C상사"]},
+    "sora":   {"name": "정소라", "role": "sales",         "employed": true,  "customers": ["C상사"]},
+    "yuna":   {"name": "최유나", "role": "sales",         "employed": true,  "customers": ["B전자"]}
+  },
+  "contracts": {
+    "C-1001": {"customer": "B전자", "title": "B전자 보안 점검 계약", "amount": "3,200만 원"},
+    "C-1002": {"customer": "C상사", "title": "C상사 구축 계약",     "amount": "8,500만 원"},
+    "C-1003": {"customer": "D물산", "title": "D물산 관제 위탁 계약", "amount": "1억 2,000만 원"}
+  }
+}

@@ -1,0 +1,39 @@
+services:
+  web:
+    image: nginx:1.28
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./web/index.html:/usr/share/nginx/html/index.html:ro
+      - ./web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - pep
+
+  pep:
+    build: ./app
+    command: python pep.py
+    stop_signal: SIGINT
+    ports:
+      - "127.0.0.1:8090:5000"
+    environment:
+      - PDP_URL=http://pdp:5001
+      - LOG_FILE=/app/logs/pep.log
+      - DB_FILE=/app/db/company.db
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data:ro
+      - ./db:/app/db
+
+  pdp:
+    build: ./app
+    command: python pdp.py
+    stop_signal: SIGINT
+    ports:
+      - "127.0.0.1:8091:5001"
+    environment:
+      - DB_FILE=/app/db/company.db
+      - LOG_FILE=/app/logs/pdp.log
+    volumes:
+      - ./data:/app/data:ro
+      - ./logs:/app/logs
+      - ./db:/app/db
