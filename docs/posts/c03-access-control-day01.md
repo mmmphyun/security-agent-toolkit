@@ -2,7 +2,7 @@
 title: "파일에서 테이블로 — JSON 파일 기반 접근통제의 데이터 오염 한계와 SQLite 정규화 프로토타이핑"
 slug: "c03-access-control-day01"
 description: "단일 JSON 파일의 O(N) 전수 탐색과 파일 덮어쓰기 파손 위험을 방어하기 위해 사용자·배정·계약 3대 정규화 테이블을 설계하고, 경량 SQLite 환경에서 PDP·PEP 실시간 인가 쿼리 바인딩과 퇴사자 라이프사이클 분리를 실증한 엔지니어링 기록"
-pubDate: 2026-09-03
+pubDate: 2026-09-18
 tags: ["SQLite", "Access-Control", "Python", "Flask", "Docker", "Engineering-Practice"]
 category: "접근통제 자동화"
 status: "published"
