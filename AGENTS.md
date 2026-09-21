@@ -148,19 +148,37 @@ AI가 블로그 포스트를 생성할 때는 과목 실습과 자율 프로젝�
 트리거 시 사용자에게 진행 여부를 묻지 않고 1단계부터 4단계까지 단일 턴에서 전자율로 완주한 뒤, 5단계 컨펌 게이트웨이에서만 대기합니다.
 메인 대화 세션의 컨텍스트 과부하(Context Bloat)를 원천 차단하기 위해, 2~4단계 작업은 독립된 메모리 공간을 가진 단발성 서브에이전트(`invoke_subagent`)를 호출하여 격리 수행합니다.
 
-### 1단계. 결정론적 타겟 식별 및 조기 종료 검사 (Mandatory First Step)
+### 1단계. 결정론적 타겟 식별 및 서브에이전트 호출 (Mandatory First Step)
 1. 미작성 대기 타겟 목록 조회:
    `uv run python pipeline/harness.py --scan-pending`
 2. 대기 목록이 0건이면 "모든 실습 및 프로젝트가 이미 블로그 포스트로 작성되었습니다."를 출력하고 즉시 작업을 종료(Stop)합니다.
-3. 1건 이상일 경우, 가장 상단의 첫 번째 미작성 대상(예: `course_id='agent_core'`, `day_id='day06'`, `target_slug='c01-agent-core-day06'`, `expected_file='docs/posts/c01-agent-core-day06.md'`)을 이번 세션의 확정 타겟으로 선정합니다.
-4. **서브에이전트 표준 프롬프트 주입 및 호출:**
-   메인 에이전트는 다음 표준 템플릿으로 서브에이전트(`invoke_subagent`)를 실행합니다:
+3. 1건 이상일 경우, 가장 상단의 첫 번째 미작성 대상을 이번 세션의 확정 타겟으로 선정합니다.
+4. **동일 과목/프로젝트 토픽 색인 사전 인제스트 (Domain-Scoped Context Pre-injection):**
+   메인 에이전트는 서브에이전트 호출 전 타겟의 접두사(예: `c01`, `c02`, `proj-rpg-sync` 등)를 지정하여 해당 도메인의 기존 포스트 색인만 직접 조회합니다:
+   `uv run python pipeline/harness.py --scan-topics <slug_prefix>`
+   (타 과목이나 무관한 프로젝트의 토픽을 프롬프트에 주입하지 않음으로써 토큰 낭비와 컨텍스트 오염을 원천 차단)
+5. **서브에이전트 표준 프롬프트 주입 및 호출:**
+   메인 에이전트는 타겟 유형(`target_type`)에 맞추어 다음 표준 템플릿으로 서브에이전트(`invoke_subagent`)를 실행합니다:
    ```text
    [타겟]: {target_slug} ({target_type}: {path})
-   [필수 선행 로드]: 첫 턴에서 view_file로 다음 스킬 파일들을 반드시 먼저 호출하여 프로토콜을 로드하십시오.
-   1) exploring-codebases (C:/Users/User/.gemini/config/skills/exploring-codebases/SKILL.md)
-   2) searching-codebases (C:/Users/User/.gemini/config/skills/searching-codebases/SKILL.md)
-   3) humanize-korean (C:/Users/User/.gemini/config/skills/humanize-korean/SKILL.md)
+   [파일 I/O 엄격 경계 (Strict Scope Boundary)]:
+   - 허용 읽기/쓰기 경로:
+     * COURSE 타겟: {path} 디렉토리 및 직속 하위 소스/로그 파일, 신규 대상(docs/posts/{target_slug}.md)
+     * PROJECT 타겟: projects/{project_name}/, .cache/repos/{project_name}/, 신규 대상(docs/posts/{target_slug}.md)
+   - 절대 금지 (Governance Hard Violation):
+     * docs/posts/ 내의 기존 마크다운 포스트 파일에 대한 view_file, grep_search, list_dir 일체 금지.
+     * 기존 포스트 토픽 및 백링크 슬러그는 아래 사전 주입된 색인 텍스트만 100% 참조하십시오. (위반 시 컨텍스트 오염으로 간주되어 작업이 무효화됩니다.)
+   [동일 도메인 기존 포스트 색인 SSOT (Pre-injected Scan Topics)]:
+   {scan_topics_filtered_output}
+
+   [필수 선행 로드 (타겟별 조건부 분기)]: 첫 턴에서 view_file로 지정된 스킬 파일만 로드하십시오.
+   - COURSE 타겟인 경우 (대상 파일이 고정되어 있으므로 탐색 스킬 로드 금지):
+     1) humanize-korean (C:/Users/User/.gemini/config/skills/humanize-korean/SKILL.md)
+   - PROJECT 타겟인 경우 (단, 탐색 도구의 SearchDirectory/SearchPath는 반드시 .cache/repos/{project_name}/ 또는 projects/{project_name}/ 로 고정):
+     1) exploring-codebases (C:/Users/User/.gemini/config/skills/exploring-codebases/SKILL.md)
+     2) searching-codebases (C:/Users/User/.gemini/config/skills/searching-codebases/SKILL.md)
+     3) humanize-korean (C:/Users/User/.gemini/config/skills/humanize-korean/SKILL.md)
+
    [수행 과업]:
    1. 컨텍스트 인제스트 및 소스코드/실습 산출물 교차검증 (AGENTS.md 제6조 2단계)
    2. 5단 ADR 구조 마크다운 초고 작성 및 괄호 영단어 병기 전면 배제 (3단계)
@@ -186,16 +204,15 @@ AI가 블로그 포스트를 생성할 때는 과목 실습과 자율 프로젝�
      `uv run python pipeline/harness.py --fetch-curriculum <course_id> <day_id>`
    - 대상 디렉토리(`<course_id>/<day_id>/`)의 실습 소스코드(`*practice.py`, `*llm.py`, `0X_*.py`, 일반 `.py`), 주석, 분석 보고서(`*.md`), `logs/` 데이터를 함께 수집합니다.
 2. **자율 프로젝트 타겟(PROJECT):**
-   - **`exploring-codebases` & `searching-codebases` 스킬 프로토콜 필수 적용:**
+   - **`exploring-codebases` & `searching-codebases` 스킬 프로토콜 적용 (격리 범위 엄수):**
    - 프로젝트 메모와 연결된 원격 레포지토리를 자동 인제스트하고 구조를 분석합니다:
      `uv run python pipeline/harness.py --fetch-project <project_name> <note_file>`
-   - `exploring-codebases` 프로토콜에 따라 프로젝트 설정(`docker-compose.yml`, `requirements.txt`), 엔트리포인트(`main.py`), 디렉토리 뼈대 맵 및 핵심 데이터 라이프사이클을 도출합니다.
+   - `exploring-codebases` 프로토콜에 따라 프로젝트 설정(`docker-compose.yml`, `requirements.txt`), 엔트리포인트(`main.py`), 디렉토리 뼈대 맵 및 핵심 데이터 라이프사이클을 도출합니다. (단, 분석 대상 경로는 `.cache/repos/<project_name>/`로 한정)
    - `searching-codebases` 프로토콜에 따라 데코레이터(`@router.get`), 핵심 클래스, 호출 체인을 정밀 슬라이싱하여 실제 소스코드와 메모 내용을 교차검증합니다.
-3. **기존 포스트 토픽 색인 조회 및 중복 서술 방지 (Cross-Reference):**
-   - 기존 발행 포스트들의 핵심 의사결정 색인을 조회합니다:
-     `uv run python pipeline/harness.py --scan-topics`
-   - 이전 일차에서 이미 해결한 예외 처리/리팩터링(예: 정규식 검증, CSV BOM 파싱, HTTP 타임아웃 등)이 당일 코드에 재등장하더라도, **새 글에서 동일한 트러블슈팅을 중복 서술(재탕)하지 않고 이전 포스트 링크([링크](/security-agent-toolkit/blog/<slug>/))로 1문장 축약 인용**합니다.
-   - 당일 포스트의 4번(엔지니어링 의사결정) 섹션은 **당일 커리큘럼 고유의 새로운 아키텍처적 과제(Delta)에 80% 이상의 분량을 집중**합니다.
+3. **기존 포스트 토픽 색인 참조 및 중복 서술 방지 (Cross-Reference):**
+   - 프롬프트에 사전 주입된 `[기존 포스트 색인 SSOT]` 텍스트를 참조합니다.
+   - **`docs/posts/*.md` 기존 포스트 원본 파일 직접 열람은 전면 금지**되며, 사전 주입된 색인 요약만으로 중복 회피 및 백링크 인용([링크](/security-agent-toolkit/blog/<slug>/))을 수행합니다.
+   - 당일 포스트의 4번(엔지니어링 의사결정) 섹션은 **당일 커리큘럼/프로젝트 고유의 새로운 아키텍처적 과제(Delta)에 80% 이상의 분량을 집중**합니다.
 
 ### 3단계. 5단 ADR 초안 생성 및 휴머나이징 (im-not-ai 기준 - Subagent)
 1. **유형별 전개 방식 및 Delta 중심 구성:**

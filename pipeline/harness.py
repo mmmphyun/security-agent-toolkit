@@ -234,8 +234,10 @@ def check_mermaid(content: str) -> list[str]:
                 if re.search(r"(\w+)\s*&\s*(\w+)\s*(-->|-->\||-.->)", line):
                     errors.append(f"Mermaid 블록 #{idx} L{line_no}: '&' 다중 노드 연결자('{line}')는 브라우저 렌더러에서 깨질 수 있습니다. 개별 간선(A --> C, B --> C)으로 분리하십시오.")
 
-                if line.count("[") != line.count("]") or line.count("{") != line.count("}"):
-                    errors.append(f"Mermaid 블록 #{idx} L{line_no}: 괄호([]) 또는 중괄호({{}})의 열림/닫힘 쌍이 일치하지 않습니다 ('{line}').")
+                # 플로우차트 노드 정의(id[라벨], id{라벨})의 단일 라인 괄호 불일치 검사 (erDiagram, classDiagram 등의 멀티라인 블록 및 카디널리티 구문 제외)
+                if any(first_line.startswith(dtype) for dtype in ("flowchart", "graph")):
+                    if line.count("[") != line.count("]") or line.count("{") != line.count("}"):
+                        errors.append(f"Mermaid 블록 #{idx} L{line_no}: 괄호([]) 또는 중괄호({{}})의 열림/닫힘 쌍이 일치하지 않습니다 ('{line}').")
 
     return errors
 
@@ -793,7 +795,12 @@ def main():
     if arg == "--scan-topics":
         repo_root = Path(__file__).resolve().parent.parent
         ledger = scan_all_topics(repo_root)
-        print(f"=== 발행된 블로그 포스트 및 핵심 주제 색인 ({len(ledger)}건) ===")
+        prefix_filter = sys.argv[2] if len(sys.argv) > 2 else None
+        if prefix_filter:
+            ledger = [item for item in ledger if item["slug"].startswith(prefix_filter)]
+            print(f"=== 발행된 블로그 포스트 및 핵심 주제 색인 [필터: {prefix_filter}] ({len(ledger)}건) ===")
+        else:
+            print(f"=== 발행된 블로그 포스트 및 핵심 주제 색인 ({len(ledger)}건) ===")
         for item in ledger:
             print(f"• [{item['slug']}] {item['title']}")
             for t in item['topics']:
