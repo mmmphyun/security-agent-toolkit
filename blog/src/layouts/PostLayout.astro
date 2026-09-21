@@ -350,7 +350,19 @@ const numberedListStart = (items: Block[], index: number) => {
         const className = (pre.className || "") + " " + (codeElement?.className || "");
         const text = pre.textContent || "";
 
-        if (className.includes("mermaid") || text.trim().startsWith("sequenceDiagram") || text.trim().startsWith("flowchart") || text.trim().startsWith("graph") || text.trim().startsWith("stateDiagram")) {
+        const isMermaid = pre.getAttribute("data-language") === "mermaid" ||
+          className.includes("mermaid") ||
+          text.trim().startsWith("sequenceDiagram") ||
+          text.trim().startsWith("flowchart") ||
+          text.trim().startsWith("graph") ||
+          text.trim().startsWith("stateDiagram") ||
+          text.trim().startsWith("erDiagram") ||
+          text.trim().startsWith("classDiagram") ||
+          text.trim().startsWith("pie") ||
+          text.trim().startsWith("gantt") ||
+          text.trim().startsWith("mindmap");
+
+        if (isMermaid) {
           const rawCode = text.trim();
           const containerId = `mermaid-svg-${Date.now()}-${mermaidIndex++}`;
           
