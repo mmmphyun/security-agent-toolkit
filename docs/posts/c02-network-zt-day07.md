@@ -39,32 +39,7 @@ status: "published"
 | `network_zt/day07/contract/Dockerfile` | 6교시 이미지 명세 | `python:3.12-slim` 베이스 빌드 | 애플리케이션 코드와 종속성을 캡슐화한 불변 이미지 정의서 |
 | `network_zt/day07/report.md` | 심화 아키텍처 리서치 | 도커 vs K8s 멀티노드 분석 | 단일 호스트 컨테이너 한계 및 K8s 파드·사이드카 구조 규명 |
 
-클라이언트 브라우저에서 출발한 HTTP 요청이 Windows 호스트 포트 포워딩을 거쳐 컨테이너 내부 격리 프로세스 및 마운트된 볼륨에 도달하는 경로는 다음과 같다.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as 브라우저 / 클라이언트
-    participant Host as 호스트 OS (Windows 네트워킹)
-    participant Engine as 도커 엔진 (포트 포워딩)
-    participant Nginx as web-one / web-two (Nginx)
-    participant Flask as contract-server (Python 3.12)
-    participant Storage as 파일시스템 (company.json)
-
-    alt 정적 웹 페이지 요청 (8080 / 8081)
-        User->>Host: 1. GET http://127.0.0.1:8080/
-        Host->>Engine: 2. 호스트 8080 포트 수신 및 컨테이너 라우팅
-        Engine->>Nginx: 3. 컨테이너 80 포트로 트래픽 인입
-        Nginx->>Storage: 4. 바인드 마운트된 index.html 조회
-        Nginx-->>User: 5. 200 OK (HELLO WEB 2 본문 반환)
-    else 동적 계약서 인가 요청 (8080)
-        User->>Host: 1. GET http://127.0.0.1:8080/document?user=minsu
-        Host->>Engine: 2. 호스트 8080 포트 수신 및 파이프라인 전달
-        Engine->>Flask: 3. 컨테이너 내부 5000 포트 Flask 리스너 전달
-        Flask->>Storage: 4. company.json 인메모리 캐시 대조
-        Flask-->>User: 5. 200 OK (ALLOW, B전자 유지보수 계약)
-    end
-```
 
 ## 3. 기존 체계의 한계와 도전 과제: 가상 머신 자원 누수와 포트 충돌 병목
 
