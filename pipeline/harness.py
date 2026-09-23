@@ -267,6 +267,55 @@ def check_mermaid_complexity(content: str) -> list[str]:
     return warnings
 
 
+def check_section2_visualization(content: str) -> list[str]:
+    """섹션 2 시각화 요소 단일성 및 다이어그램 적합성 검사 (권장 스타일 경고)"""
+    warnings = []
+    sec2_match = re.search(r"## 2\.[^\n]*\n(.*?)(?=\n## 3\.|\Z)", content, re.DOTALL)
+    if not sec2_match:
+        return warnings
+
+    sec2_text = sec2_match.group(1)
+    mermaid_blocks = re.findall(r"```mermaid\s*\n(.*?)\n```", sec2_text, re.DOTALL)
+    markdown_tables = re.findall(r"(\|[^\n]+\|\r?\n\|[-:\s|]+\|\r?\n(?:\|[^\n]+\|\r?\n?)+)", sec2_text)
+
+    # 1. 다이어그램 + 표 기계적 2종 병치 감지
+    if mermaid_blocks and markdown_tables:
+        warnings.append(
+            f"섹션 2 시각화 중복 병치 감지: Mermaid 다이어그램({len(mermaid_blocks)}개)과 구조화 표({len(markdown_tables)}개)가 동시에 작성되었습니다. "
+            "AGENTS.md 단 1개 시각화 원칙에 따라 실습 성격에 가장 부합하는 단일 수단(ERD, 시퀀스, 상태머신, 표 중 택일)으로 압축을 권장합니다."
+        )
+
+    # 2. 뻔한 컴포넌트 박스 나열형 flowchart TD 감지
+    for idx, block in enumerate(mermaid_blocks, 1):
+        lines = [line.strip() for line in block.strip().splitlines() if line.strip() and not line.strip().startswith("%%")]
+        first_line = lines[0] if lines else ""
+        if first_line.startswith("flowchart TD") or first_line.startswith("graph TD"):
+            warnings.append(
+                f"섹션 2 순서도(flowchart TD) 스타일 점검: 관성적인 컴포넌트 박스 나열형 flowchart는 정보 전달력이 낮습니다. "
+                "DB 스키마는 erDiagram, 통신 흐름은 sequenceDiagram, 상태 전이는 stateDiagram-v2, "
+                "명령어/필드는 Markdown 표로의 전환을 권장합니다 (순수 데이터 파이프라인만 flowchart LR 허용)."
+            )
+
+    return warnings
+
+
+def check_code_block_length(content: str) -> list[str]:
+    """단일 코드 블록 길이 과밀 감지 (25줄 초과 시 경고)"""
+    warnings = []
+    code_blocks = re.findall(r"```([a-zA-Z0-9_-]*)\s*\n(.*?)\n```", content, re.DOTALL)
+    for idx, (lang, block) in enumerate(code_blocks, 1):
+        if lang.lower() == "mermaid":
+            continue
+        lines = [line for line in block.strip().splitlines() if line.strip()]
+        line_count = len(lines)
+        if line_count > 25:
+            warnings.append(
+                f"코드 블록 #{idx} ({lang or 'text'}, {line_count}줄): 단일 코드 블록 길이가 25줄을 초과하여 글의 가독성을 저해합니다. "
+                "import, DB 연결/해제, 단순 루프/출력 등 자명한 보일러플레이트는 생략(...)하고 당일 엔지니어링 의사결정이 담긴 핵심 로직(10~15줄 이내)만 정밀 발췌하십시오."
+            )
+    return warnings
+
+
 def check_local_links(content: str) -> list[str]:
     """정적 웹 사이트 배포 환경에서 동작하지 않는 로컬 파일 링크(file://, C:/, 비웹 상대경로) 검출 (하드 에러)"""
     errors = []
@@ -444,6 +493,33 @@ def check_duplicate_topics(content: str, current_file: Path) -> list[str]:
     return warnings
 
 
+def check_frontmatter_slug(content: str, current_file: Path) -> list[str]:
+    """Frontmatter 내 slug 필드 존재 여부 및 파일명(stem) 일치 여부 검증 (하드 가드)"""
+    stem = current_file.stem.lower()
+    content = content.lstrip("\ufeff")
+
+    match = re.search(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
+    if not match:
+        return ["Frontmatter가 누락되었거나 형식이 올바르지 않습니다."]
+
+    frontmatter_text = match.group(1)
+    slug_match = re.search(r"^slug:\s*[\"']?([^\"'\n\r]+)[\"']?", frontmatter_text, re.MULTILINE)
+    if not slug_match:
+        return [
+            f"Frontmatter에 'slug' 필드가 누락되었습니다.\n"
+            f"  -> [해결 방법]: Frontmatter에 `slug: \"{current_file.stem}\"`을 반드시 명시하십시오."
+        ]
+
+    actual_slug = slug_match.group(1).strip().lower()
+    if actual_slug != stem:
+        return [
+            f"Frontmatter 'slug' 불일치: 파일명 '{current_file.stem}'과 slug '{slug_match.group(1).strip()}'가 일치하지 않습니다.\n"
+            f"  -> [해결 방법]: Frontmatter의 slug를 `slug: \"{current_file.stem}\"`으로 일치시키십시오."
+        ]
+
+    return []
+
+
 def check_category_mapping(content: str, current_file: Path) -> list[str]:
     """포스트의 과목 슬러그 접두사(c01~c05, proj-)와 Frontmatter 카테고리 일치 여부 검증"""
     stem = current_file.stem.lower()
@@ -565,6 +641,7 @@ def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]
 
     hard_errors.extend(check_emojis(content))
     hard_errors.extend(check_parentheses_english(content))
+    hard_errors.extend(check_frontmatter_slug(content, file_path))
     hard_errors.extend(check_category_mapping(content, file_path))
     hard_errors.extend(check_paragraph_pacing(content))
 
@@ -584,6 +661,12 @@ def validate_markdown_file(file_path: Path) -> tuple[bool, list[str], list[str]]
 
     mermaid_warnings = check_mermaid_complexity(content)
     soft_warnings.extend(mermaid_warnings)
+
+    sec2_warnings = check_section2_visualization(content)
+    soft_warnings.extend(sec2_warnings)
+
+    code_len_warnings = check_code_block_length(content)
+    soft_warnings.extend(code_len_warnings)
 
     is_valid = len(hard_errors) == 0
     return is_valid, hard_errors, soft_warnings
