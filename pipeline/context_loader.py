@@ -1,4 +1,4 @@
-﻿"""
+"""
 pipeline.context_loader
 
 커리큘럼 허브에서 과목/일차별 메인 목표 및 세부 교시(Sub-lessons) 실습 명세를
@@ -141,6 +141,12 @@ def fetch_day_lecture_note(course_id: str, day_id: str, fetch_sub_lessons: bool 
     """특정 과목/일차의 커리큘럼 본문 및 세부 교시 명세를 재귀적으로 추출"""
     if not CURRICULUM_HUB_PAGE_ID:
         return "[알림] CURRICULUM_HUB_PAGE_ID 환경변수가 설정되지 않아 로컬 코드 컨텍스트만 사용합니다."
+
+    alias_map = {
+        "mini-watch": "anomaly_detection",
+        "mini_watch": "anomaly_detection",
+    }
+    course_id = alias_map.get(course_id, course_id)
 
     catalog = build_curriculum_catalog()
     course_info = catalog.get(course_id)

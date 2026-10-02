@@ -756,7 +756,7 @@ def extract_course_prefix(course_dir: Path, fallback_index: int) -> str:
     readme_path = course_dir / "README.md"
     if readme_path.exists():
         content = readme_path.read_text(encoding="utf-8")
-        match = re.search(r"#\s*(\d+)과목", content)
+        match = re.search(r"#\s*(\d+)(?:-\d+)?과목", content)
         if match:
             return f"c{int(match.group(1)):02d}"
 
@@ -791,6 +791,10 @@ def scan_pending_targets(repo_root: Path) -> list[dict[str, str]]:
         prefix = extract_course_prefix(course_dir, fallback_index=idx)
         for item in sorted(course_dir.iterdir()):
             if item.is_dir() and item.name.startswith("day"):
+                # 타 일차 통합 또는 의도적 제외 마커 파일 확인
+                if (item / ".integrated").exists() or (item / ".skip").exists():
+                    continue
+
                 target_slug = f"{prefix}-{course_dir.name.replace('_', '-')}-{item.name}"
                 if target_slug not in existing_slugs:
                     pending.append({
