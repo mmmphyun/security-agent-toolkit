@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>새 게시글 작성 | mini-watch</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>새 게시글 작성</h1>
+    {% if error %}
+    <p class="error" role="alert">{{ error }}</p>
+    {% endif %}
+    <form action="/board/new" method="post">
+        <p>
+            <label for="title">제목</label>
+            <input id="title" name="title" value="{{ title }}">
+        </p>
+        <p>
+            <label for="body">내용</label>
+            <textarea id="body" name="body" rows="5">{{ body }}</textarea>
+        </p>
+        <button type="submit">게시글 저장</button>
+    </form>
+    <p><a href="/">취소</a></p>
+</body>
+</html>
