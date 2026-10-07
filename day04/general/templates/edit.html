@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>게시글 수정 | mini-watch</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>게시글 수정</h1>
+    {% if error %}
+    <p class="error" role="alert">{{ error }}</p>
+    {% endif %}
+    <form action="/board/{{ post_id }}/edit" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <p>
+            <label for="title">제목</label>
+            <input id="title" name="title" value="{{ title }}">
+        </p>
+        <p>
+            <label for="body">내용</label>
+            <textarea id="body" name="body" rows="5">{{ body }}</textarea>
+        </p>
+        <button type="submit">수정 저장</button>
+    </form>
+    <p><a href="/board/{{ post_id }}">취소</a></p>
+</body>
+</html>
