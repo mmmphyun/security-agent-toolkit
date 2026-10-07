@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>로그인 | mini-watch</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/login.js" defer></script>
+</head>
+<body>
+    <h1>일반 서비스 로그인</h1>
+    <p>로그인한 사용자는 게시글을 작성·수정·삭제할 수 있습니다.</p>
+    <form id="login-form" method="post" action="/auth/login">
+        <input id="csrf-token" type="hidden" value="{{ csrf_token }}">
+        <p>
+            <label for="username">아이디</label>
+            <input id="username" name="username" autocomplete="username">
+        </p>
+        <p>
+            <label for="password">비밀번호</label>
+            <input id="password" name="password" type="password" autocomplete="current-password">
+        </p>
+        <button type="submit">로그인</button>
+    </form>
+    <p id="result" role="status" aria-live="polite">아이디와 비밀번호를 입력해 주세요.</p>
+    <p><a href="/">게시글 목록으로</a></p>
+</body>
+</html>
