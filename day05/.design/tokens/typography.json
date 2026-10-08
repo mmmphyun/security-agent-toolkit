@@ -1,0 +1,64 @@
+{
+  "imports": [
+    "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css",
+    "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap",
+    "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+  ],
+  "families": {
+    "display": [
+      "Space Grotesk",
+      "Pretendard",
+      "sans-serif"
+    ],
+    "body": [
+      "Pretendard",
+      "-apple-system",
+      "BlinkMacSystemFont",
+      "system-ui",
+      "sans-serif"
+    ],
+    "mono": [
+      "JetBrains Mono",
+      "D2Coding",
+      "Pretendard",
+      "monospace"
+    ]
+  },
+  "roles": {
+    "pageTitle": {
+      "family": "display",
+      "size": "2.25rem",
+      "weight": 700,
+      "lineHeight": 1.15,
+      "letterSpacing": "-0.03em"
+    },
+    "sectionTitle": {
+      "family": "display",
+      "size": "1.5rem",
+      "weight": 600,
+      "lineHeight": 1.25,
+      "letterSpacing": "-0.02em"
+    },
+    "body": {
+      "family": "body",
+      "size": "0.875rem",
+      "weight": 400,
+      "lineHeight": 1.5,
+      "letterSpacing": "normal"
+    },
+    "caption": {
+      "family": "body",
+      "size": "0.75rem",
+      "weight": 400,
+      "lineHeight": 1.4,
+      "letterSpacing": "0.01em"
+    },
+    "technicalValue": {
+      "family": "mono",
+      "size": "0.8125rem",
+      "weight": 500,
+      "lineHeight": 1.4,
+      "letterSpacing": "normal"
+    }
+  }
+}
