@@ -4,7 +4,7 @@ import { SITE } from "../../config";
 import { withBase } from "../../lib/site-path";
 
 const pageTitle = `Portfolio | 한승윤 (Seungyun Han)`;
-const pageDescription = "지연 시간과 보안 제약 속에서 시스템 병목을 계측하고, 자동화와 방어적 설계를 통해 운영 안정성을 확보하는 엔지니어 한승윤의 포트폴리오";
+const pageDescription = "클라우드 인프라·운영 자동화 엔지니어를 준비하며, 지연 시간과 보안 제약 속에서 시스템 병목을 계측하고 자동화와 방어적 설계를 통해 운영 안정성을 확보하는 엔지니어 한승윤의 포트폴리오";
 
 interface ProjectSpec {
   id: string;
@@ -32,7 +32,7 @@ const projects: ProjectSpec[] = [
     summary: "176ms 만에 끝나는 SSH 무차별 대입 공격 세션에서 10초 이내에 다중 계층 차단을 끝내는 멱등 격리 파이프라인",
     constraints: "단일 SSH 세션이 176ms 만에 닫히는 데 비해 로그 수집 지연이 길어 세션 중간 가로채기가 불가능하고, 분할 인입 시 무상태 서버리스 환경에서 공격 탐지가 누락되는 문제",
     tradeoff: "실시간 패킷 인터셉트 대신 사후 보안 그룹 전면 교체로 후속 접속을 원천 차단하고 웹 방화벽 IP 차단을 함께 집행하는 구조 채택",
-    metrics: "DynamoDB 3버킷 원자적 누적으로 동시성 충돌 0% 및 P50 지연 36.47ms 기록, 단위 및 통합 테스트 663건 통과, 관제 알림 장애 격리",
+    metrics: "15개 스레드 동시 경합으로 DynamoDB 3버킷 원자적 누적을 검증: 쓰기 유실 0%, P50 쓰기 지연 36.47ms, 단위 및 통합 테스트 663건 통과",
     techStack: ["AWS Lambda", "EC2", "WAFv2", "DynamoDB", "Boto3", "Pydantic v2", "Moto"],
     githubUrl: "https://github.com/mmmphyun/aleph-project",
     blogUrl: withBase("/blog/?category=%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2Fcloudshield+%EC%84%9C%EB%B2%84%EB%A6%AC%EC%8A%A4+%EB%B3%B4%EC%95%88+%EC%98%A4%EC%BC%80%EC%8A%A4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%85%98"),
@@ -110,7 +110,7 @@ const projects: ProjectSpec[] = [
       <div class="portfolio-hero__header">
         <h1 class="portfolio-hero__name">한승윤 <span class="portfolio-hero__en">Seungyun Han</span></h1>
         <p class="portfolio-hero__identity">
-          지연 시간과 보안 제약 속에서 시스템 병목을 계측하고, 자동화와 방어적 설계를 통해 운영 안정성을 확보하는 엔지니어
+          클라우드 인프라·운영 자동화 엔지니어를 준비하고 있습니다. 지연 시간과 보안 제약 속에서 시스템 병목을 계측하고, 자동화와 방어적 설계를 통해 운영 안정성을 확보합니다.
         </p>
       </div>
 
@@ -234,6 +234,189 @@ const projects: ProjectSpec[] = [
             </footer>
           </article>
         ))}
+      </div>
+    </section>
+
+    <!-- Governance & Automation Section -->
+    <section class="portfolio-governance">
+      <div class="projects-section-head">
+        <h2 class="projects-section-title">협업 및 엔지니어링 거버넌스</h2>
+        <span class="projects-section-count">2개 운영 사례</span>
+      </div>
+      <p class="governance-section-intro">
+        인프라 의존성으로 인한 개발 지연을 사전 계약으로 풀고, 코드와 문서화 간의 중복 수작업을 자동화 파이프라인으로 줄인 엔지니어링 운영 사례입니다.
+      </p>
+
+      <div class="governance-compact-list">
+        <!-- Item 1: Team Collaboration Harness -->
+        <article class="governance-item" id="gov-cloudshield">
+          <header class="governance-item__header">
+            <div class="governance-item__title-group">
+              <div class="governance-item__meta">
+                <span class="governance-item__scope">CloudShield</span>
+                <span class="governance-item__divider">/</span>
+                <span class="governance-item__role">팀장</span>
+              </div>
+              <h3 class="governance-item__name">계약 기반 병렬 개발 및 역할 분담 영역 격리</h3>
+            </div>
+            <div class="governance-item__links">
+              <a
+                href="https://github.com/mmmphyun/aleph-project/pull/112"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="project-link-button project-link-button--github"
+              >
+                <span>PR #112</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="7" y1="17" x2="17" y2="7"></line>
+                  <polyline points="7 7 17 7 17 17"></polyline>
+                </svg>
+              </a>
+            </div>
+          </header>
+
+          <div class="governance-item__brief">
+            <p class="governance-item__action">
+              <strong>핵심 조치:</strong> Pydantic v2 계약 모델, 모의 데이터 체인, 디렉터리 화이트리스트 CI 검사기
+            </p>
+            <p class="governance-item__metric">
+              <strong>운영 성과:</strong> 10주간 4인 병렬 개발: Git 병합 충돌 0건, 모듈 통합 인터페이스 불일치 0건
+            </p>
+          </div>
+
+          <details class="governance-details">
+            <summary class="governance-summary">
+              <span>배경 및 구현 세부사항</span>
+              <svg class="governance-summary__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </summary>
+            <div class="governance-details__content">
+              <div class="project-spec-grid">
+                <section class="project-spec-block">
+                  <h4 class="project-spec-label">
+                    <span class="spec-index" aria-hidden="true">01</span>
+                    <span>배경 및 문제</span>
+                  </h4>
+                  <p class="project-spec-desc">
+                    인프라·보안 아키텍처 특성상 선행 수집 모듈이 갖춰지지 않으면 후행 탐지 및 대응 모듈의 개발과 단위 테스트가 가로막히는 의존성 병목이 발생했습니다. 4인 병렬 개발 과정에서 서로의 코드를 덮어쓰지 않고 작업할 영역 분리가 필요했습니다.
+                  </p>
+                </section>
+
+                <section class="project-spec-block">
+                  <h4 class="project-spec-label">
+                    <span class="spec-index" aria-hidden="true">02</span>
+                    <span>엔지니어링 조치</span>
+                  </h4>
+                  <p class="project-spec-desc">
+                    Pydantic v2 코어 모델에 데이터 규격을 정의하고 모의 데이터 체인을 주입하여 선행 인프라 배포 없이도 탐지·대응 모듈 개발을 병렬화했습니다. 디렉터리 화이트리스트 검사기로 담당 외 소스코드 수정을 검출하여 병합을 차단하고, 코드 리뷰에서 식별된 모의 데이터 단절 문제를 해결하기 위해 수집·탐지·대응 간 데이터 계약과 정규식 매칭을 검증하는 전 구간 교차 계약 테스트 5종을 신설했습니다.
+                  </p>
+                </section>
+
+                <section class="project-spec-block">
+                  <h4 class="project-spec-label">
+                    <span class="spec-index" aria-hidden="true">03</span>
+                    <span>측정 성과</span>
+                  </h4>
+                  <p class="project-spec-desc">
+                    10주간 4인 병렬 개발에서 Git 병합 충돌 0건, 모듈 통합 인터페이스 불일치 0건을 달성했습니다. 선행 수집 모듈 완성을 기다리지 않고 탐지 및 대응 모듈 개발과 단위 검증을 독립적으로 완결했습니다.
+                  </p>
+                </section>
+              </div>
+            </div>
+          </details>
+        </article>
+
+        <!-- Item 2: Documentation Pipeline -->
+        <article class="governance-item" id="gov-pipeline">
+          <header class="governance-item__header">
+            <div class="governance-item__title-group">
+              <div class="governance-item__meta">
+                <span class="governance-item__scope">security-agent-toolkit</span>
+                <span class="governance-item__divider">/</span>
+                <span class="governance-item__role">1인 설계</span>
+              </div>
+              <h3 class="governance-item__name">기술 문서 배포 파이프라인</h3>
+            </div>
+            <div class="governance-item__links">
+              <a
+                href="https://github.com/mmmphyun/security-agent-toolkit/blob/main/pipeline/harness.py"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="project-link-button project-link-button--github"
+              >
+                <span>검증 하네스</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="7" y1="17" x2="17" y2="7"></line>
+                  <polyline points="7 7 17 7 17 17"></polyline>
+                </svg>
+              </a>
+              <a
+                href="https://github.com/mmmphyun/security-agent-toolkit/blob/main/.github/workflows/deploy-blog.yml"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="project-link-button project-link-button--github"
+              >
+                <span>배포 워크플로</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="7" y1="17" x2="17" y2="7"></line>
+                  <polyline points="7 7 17 7 17 17"></polyline>
+                </svg>
+              </a>
+            </div>
+          </header>
+
+          <div class="governance-item__brief">
+            <p class="governance-item__action">
+              <strong>핵심 조치:</strong> 실습 코드·로그 기반 초안 작성 보조, Frontmatter 검증, 엔지니어 최종 검수
+            </p>
+            <p class="governance-item__metric">
+              <strong>운영 성과:</strong> 기술 분석 글 37편: 빌드 실패 0건, 라우팅 오류 0건
+            </p>
+          </div>
+
+          <details class="governance-details">
+            <summary class="governance-summary">
+              <span>배경 및 구현 세부사항</span>
+              <svg class="governance-summary__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </summary>
+            <div class="governance-details__content">
+              <div class="project-spec-grid">
+                <section class="project-spec-block">
+                  <h4 class="project-spec-label">
+                    <span class="spec-index" aria-hidden="true">01</span>
+                    <span>배경 및 문제</span>
+                  </h4>
+                  <p class="project-spec-desc">
+                    강의 자료, 실습 코드, 시스템 로그, 인라인 메모로 이미 정리해둔 내용을 블로그 글로 다시 옮겨 적는 이중 수작업 부담이 발생했습니다. 수동 복사 및 발행 과정에서 메타데이터 누락이나 라우팅 링크가 깨지는 문제를 방지해야 했습니다.
+                  </p>
+                </section>
+
+                <section class="project-spec-block">
+                  <h4 class="project-spec-label">
+                    <span class="spec-index" aria-hidden="true">02</span>
+                    <span>엔지니어링 조치</span>
+                  </h4>
+                  <p class="project-spec-desc">
+                    실습 코드와 실행 로그를 원천 데이터로 삼아 표준 구조 초안 작성을 보조했습니다. 자체 Linter 하네스(pipeline/harness.py)와 Astro/Zod 엔진으로 필수 메타데이터를 빌드 타임에 검사하고, 엔지니어가 직접 재현성과 사실 관계를 최종 검수한 뒤 GitHub Actions로 배포했습니다.
+                  </p>
+                </section>
+
+                <section class="project-spec-block">
+                  <h4 class="project-spec-label">
+                    <span class="spec-index" aria-hidden="true">03</span>
+                    <span>측정 성과</span>
+                  </h4>
+                  <p class="project-spec-desc">
+                    기술 분석 글 37편 배포: 빌드 실패 0건, 라우팅 오류 0건을 유지했습니다. 중복 작성 부담을 줄이고 배포 안정성을 확보했습니다.
+                  </p>
+                </section>
+              </div>
+            </div>
+          </details>
+        </article>
       </div>
     </section>
 
@@ -592,6 +775,153 @@ const projects: ProjectSpec[] = [
     border: 1px solid var(--color-line);
   }
 
+  /* Governance Section */
+  .portfolio-governance {
+    margin-bottom: 2.5rem;
+  }
+
+  .governance-section-intro {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--color-ink-soft);
+    margin: -1.2rem 0 1.5rem;
+    word-break: keep-all;
+  }
+
+  .governance-compact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .governance-item {
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    padding: 1.4rem 1.5rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .governance-item:hover {
+    border-color: var(--color-line-focus);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+
+  .governance-item__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .governance-item__title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .governance-item__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.76rem;
+    color: var(--color-muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .governance-item__scope {
+    font-weight: 600;
+    color: var(--color-accent);
+  }
+
+  .governance-item__divider {
+    color: var(--color-line);
+  }
+
+  .governance-item__role {
+    font-weight: 500;
+  }
+
+  .governance-item__name {
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .governance-item__links {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .governance-item__brief {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--color-ink-soft);
+    margin-bottom: 0.85rem;
+    word-break: keep-all;
+  }
+
+  .governance-item__brief p {
+    margin: 0;
+  }
+
+  .governance-item__brief strong {
+    color: var(--color-ink);
+    font-weight: 600;
+    margin-right: 0.35rem;
+  }
+
+  /* Native details / summary styles */
+  .governance-details {
+    border-top: 1px solid var(--color-line);
+    padding-top: 0.65rem;
+  }
+
+  .governance-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    padding: 0.2rem 0;
+    transition: color 0.15s ease;
+  }
+
+  .governance-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .governance-summary:hover {
+    color: var(--color-accent);
+  }
+
+  .governance-summary__icon {
+    transition: transform 0.2s ease;
+  }
+
+  .governance-details[open] .governance-summary__icon {
+    transform: rotate(180deg);
+  }
+
+  .governance-details__content {
+    margin-top: 0.9rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--color-line);
+  }
+
   /* Footer */
   .portfolio-footer {
     text-align: center;
@@ -606,7 +936,8 @@ const projects: ProjectSpec[] = [
   }
 
   @media (max-width: 640px) {
-    .project-card__header {
+    .project-card__header,
+    .governance-item__header {
       flex-direction: column;
     }
     .portfolio-hero__name {
