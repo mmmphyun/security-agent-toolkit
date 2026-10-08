@@ -1,0 +1,598 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { SITE } from "../../config";
+import { withBase } from "../../lib/site-path";
+
+const pageTitle = `Portfolio | 한승윤 (Seungyun Han)`;
+const pageDescription = "지연 시간과 보안 제약 속에서 시스템 병목을 계측하고, 자동화와 방어적 설계를 통해 운영 안정성을 확보하는 엔지니어 한승윤의 포트폴리오";
+
+interface ProjectSpec {
+  id: string;
+  title: string;
+  subtitle: string;
+  period: string;
+  role: string;
+  summary: string;
+  constraints: string;
+  tradeoff: string;
+  metrics: string;
+  techStack: string[];
+  githubUrl: string;
+  blogUrl?: string;
+  blogLabel?: string;
+}
+
+const projects: ProjectSpec[] = [
+  {
+    id: "cloudshield",
+    title: "CloudShield",
+    subtitle: "클라우드 침해 위협 탐지 및 자동 격리 파이프라인",
+    period: "2026.09 - 2026.10",
+    role: "부트캠프 캡스톤 팀장 (L4·L7 다중 계층 차단 엔진, 동시성 상태 관리자 구현)",
+    summary: "176ms 만에 끝나는 SSH 무차별 대입 공격 세션에서 10초 이내에 다중 계층 차단을 끝내는 멱등 격리 파이프라인",
+    constraints: "단일 SSH 세션이 176ms 만에 닫히는 데 비해 로그 수집 지연이 길어 세션 중간 가로채기가 불가능하고, 분할 인입 시 무상태 서버리스 환경에서 공격 탐지가 누락되는 문제",
+    tradeoff: "실시간 패킷 인터셉트 대신 사후 보안 그룹 전면 교체로 후속 접속을 원천 차단하고 웹 방화벽 IP 차단을 함께 집행하는 구조 채택",
+    metrics: "DynamoDB 3버킷 원자적 누적으로 동시성 충돌 0% 및 P50 지연 36.47ms 기록, 단위 및 통합 테스트 663건 통과, 관제 알림 장애 격리",
+    techStack: ["AWS Lambda", "EC2", "WAFv2", "DynamoDB", "Boto3", "Pydantic v2", "Moto"],
+    githubUrl: "https://github.com/mmmphyun/aleph-project",
+    blogUrl: withBase("/blog/tag/CloudShield/"),
+    blogLabel: "기술 블로그 시리즈",
+  },
+  {
+    id: "rpg-sync",
+    title: "RPG Sync System",
+    subtitle: "분산 환경 데이터 동기화 및 장애 자가 치유 엔진",
+    period: "2026.08 - 2026.09",
+    role: "1인 단독 설계 및 풀스택 구현 (백엔드 API, 봇, 게임 서버 플러그인, 클라우드 인프라)",
+    summary: "1GB RAM 소형 가상머신과 200ms 물리 지연 환경에서 데이터 유실 없이 트랜잭션을 처리하는 자가 치유 커넥션 풀 및 경량 분산 락",
+    constraints: "GCP e2-micro 1GB RAM 호스트 한계, 미국 서부 서버와 한국 데이터베이스 간 200ms 물리 왕복 지연, 메인 틱 멈춤 현상과 커넥션 풀러 세션 충돌",
+    tradeoff: "사전 연결 확인 질의를 없애 지연을 줄이고 OS 커널 TCP 연결 유지 설정과 장애 감지 시 1회 즉시 재연결하는 데코레이터, 15초 안전 만료 분산 락 채택",
+    metrics: "일반 질의 응답 405.66ms에서 243.41ms로 40% 단축, 인메모리 캐시 16.18ms 달성, 동시 승인 경합 20건 중 오류율 0%, 암호화 가상 사설망 터널 구축",
+    techStack: ["Python", "FastAPI", "Redis", "PostgreSQL", "PaperMC", "Tailscale", "Docker"],
+    githubUrl: "https://github.com/mmmphyun/rpg_sync_project",
+    blogUrl: withBase("/blog/tag/Distributed-System/"),
+    blogLabel: "기술 블로그 시리즈",
+  },
+  {
+    id: "prfvault",
+    title: "PrfVault",
+    subtitle: "WebAuthn PRF 기반 하드웨어 바인딩 로컬 볼트 및 보안 실태 실증 연구",
+    period: "2026.09 - 2026.10",
+    role: "1인 단독 연구 개발 (암호화 코어, 네이티브 호스트, 확장 프로그램, 50대 웹 스캔)",
+    summary: "중앙 서버 없이 기기 TPM 2.0 보안 모듈에서 암호키를 직접 유도하고 메모리 즉시 소거로 평문 잔류를 막는 로컬 볼트 (연구 검증 후 동결)",
+    constraints: "윈도우 11 내장 인증자의 PRF 인터페이스 폐쇄, 브라우저 프로세스 메모리 덤프 노출 위협, 국내 웹사이트 가상 키패드의 자동완성 간섭",
+    tradeoff: "서버 저장 방식 대신 윈도우 암호화 API FFI 직접 연동 네이티브 호스트 구현 및 Rust Wasm 메모리 강제 소거 로직 채택",
+    metrics: "네이티브 호스트 32바이트 대칭키 유도 왕복 검증, 선형 메모리 0x00 즉각 소거, 국내 50대 웹 스캔(가상 키패드 6.7% 차단, 길이 제약 엔트로피 20% 손실 규명)",
+    techStack: ["Rust", "Wasm", "zeroize", "Windows CNG", "Chrome MV3", "TypeScript", "Playwright"],
+    githubUrl: "https://github.com/mmmphyun/PrfVault",
+  },
+  {
+    id: "ru-beacon",
+    title: "ru-beacon",
+    subtitle: "게임 서버 이벤트 연동 및 DAG 워크플로우 자동화 플랫폼",
+    period: "2026.09",
+    role: "1인 단독 설계 및 개발 (API 서버, 봇, 워커, 게임 서버 플러그인, K3s 배포)",
+    summary: "외부 게임 서버의 50ms 틱 루프 간섭을 0ms로 격리하고 초당 1,000건 요청 스파이크를 방어하는 2단계 분산 동시성 제어 엔진",
+    constraints: "마인크래프트 메인 스레드 블로킹 절대 금지, 소형 인프라 환경에서 초당 1,000건 선착순 요청 유입 시 데이터베이스 커넥션 풀 고갈 위험",
+    tradeoff: "무거운 카프카 대신 경량 Redis Streams 메시지 버스를 채택하고, 단순 DB 트랜잭션 대신 Redis Lua 사전 탈락 처리와 DB 영속화의 2단계 제어 채택",
+    metrics: "k6 부하 테스트 피크 초당 1,000건 중 99.36%를 평균 1.17ms 만에 사전 차단(초과 발급 0건), 미처리 큐 기준 워커 2대에서 10대 자동 확장, 메인 틱 간섭 0ms",
+    techStack: ["Kotlin", "Coroutines", "Ktor", "Redis Streams", "KEDA", "K3s", "PostgreSQL"],
+    githubUrl: "https://github.com/mmmphyun/ru-beacon",
+    blogUrl: withBase("/blog/tag/Redis-Streams/"),
+    blogLabel: "기술 블로그 시리즈",
+  },
+];
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  includeSidebar={false}
+  showHeader={false}
+  showFooter={false}
+  mainClass="portfolio-page-container"
+>
+  <div class="portfolio-wrapper">
+    <!-- Top Minimal Navigation -->
+    <header class="portfolio-nav">
+      <span class="portfolio-nav__tag">ENGINEERING PORTFOLIO</span>
+      <a href={withBase('/blog/')} class="portfolio-nav__link" target="_blank" rel="noopener noreferrer">
+        <span>Blog</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="7" y1="17" x2="17" y2="7"></line>
+          <polyline points="7 7 17 7 17 17"></polyline>
+        </svg>
+      </a>
+    </header>
+
+    <!-- Hero / Profile Section -->
+    <section class="portfolio-hero">
+      <div class="portfolio-hero__header">
+        <h1 class="portfolio-hero__name">한승윤 <span class="portfolio-hero__en">Seungyun Han</span></h1>
+        <p class="portfolio-hero__identity">
+          지연 시간과 보안 제약 속에서 시스템 병목을 계측하고, 자동화와 방어적 설계를 통해 운영 안정성을 확보하는 엔지니어
+        </p>
+      </div>
+
+      <div class="portfolio-hero__contact">
+        <a href="mailto:gksdmqdbs@gmail.com" class="contact-chip">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+          </svg>
+          <span>gksdmqdbs@gmail.com</span>
+        </a>
+        <a href="https://github.com/mmmphyun" target="_blank" rel="noopener noreferrer" class="contact-chip">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
+          </svg>
+          <span>github.com/mmmphyun</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="portfolio-projects">
+      <div class="projects-section-head">
+        <h2 class="projects-section-title">Core Engineering Projects</h2>
+        <span class="projects-section-count">4 Selected Projects</span>
+      </div>
+
+      <div class="projects-list">
+        {projects.map((project) => (
+          <article class="project-card" id={project.id}>
+            <!-- Card Header -->
+            <header class="project-card__header">
+              <div class="project-card__title-group">
+                <div class="project-card__meta">
+                  <span class="project-card__period">{project.period}</span>
+                  <span class="project-card__divider">/</span>
+                  <span class="project-card__role">{project.role}</span>
+                </div>
+                <h3 class="project-card__name">{project.title}</h3>
+                <p class="project-card__subtitle">{project.subtitle}</p>
+              </div>
+
+              <!-- Action Links -->
+              <div class="project-card__links">
+                {project.githubUrl && (
+                  <a
+                    href={project.githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="project-link-button project-link-button--github"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
+                    </svg>
+                    <span>GitHub</span>
+                  </a>
+                )}
+                {project.blogUrl && (
+                  <a
+                    href={project.blogUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="project-link-button project-link-button--blog"
+                  >
+                    <span>{project.blogLabel ?? "Blog"}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <line x1="7" y1="17" x2="17" y2="7"></line>
+                      <polyline points="7 7 17 7 17 17"></polyline>
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </header>
+
+            <!-- Card Summary -->
+            <div class="project-card__summary">
+              <p>{project.summary}</p>
+            </div>
+
+            <!-- Spec 3-Section Grid/List -->
+            <div class="project-spec-grid">
+              <section class="project-spec-block">
+                <h4 class="project-spec-label">
+                  <span class="spec-indicator spec-indicator--constraints" aria-hidden="true"></span>
+                  핵심 제약 및 병목
+                </h4>
+                <p class="project-spec-desc">{project.constraints}</p>
+              </section>
+
+              <section class="project-spec-block">
+                <h4 class="project-spec-label">
+                  <span class="spec-indicator spec-indicator--tradeoff" aria-hidden="true"></span>
+                  설계 트레이드오프
+                </h4>
+                <p class="project-spec-desc">{project.tradeoff}</p>
+              </section>
+
+              <section class="project-spec-block">
+                <h4 class="project-spec-label">
+                  <span class="spec-indicator spec-indicator--metrics" aria-hidden="true"></span>
+                  구현 및 실측 검증
+                </h4>
+                <p class="project-spec-desc">{project.metrics}</p>
+              </section>
+            </div>
+
+            <!-- Card Tech Stack Footer -->
+            <footer class="project-card__footer">
+              <div class="tech-stack-list">
+                {project.techStack.map((tech) => (
+                  <span class="tech-stack-badge">{tech}</span>
+                ))}
+              </div>
+            </footer>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <!-- Footer Copyright -->
+    <footer class="portfolio-footer">
+      <p>© 2026 한승윤 (Seungyun Han). Built with Astro.</p>
+    </footer>
+  </div>
+</BaseLayout>
+
+<style>
+  :global(.portfolio-page-container) {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 5rem;
+    color: var(--color-ink);
+  }
+
+  .portfolio-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+
+  /* Top Minimal Navigation */
+  .portfolio-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .portfolio-nav__tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--color-faint);
+  }
+
+  .portfolio-nav__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-muted);
+    text-decoration: none;
+    transition: color 140ms ease;
+  }
+
+  .portfolio-nav__link:hover {
+    color: var(--color-blue);
+  }
+
+  /* Hero / Profile */
+  .portfolio-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .portfolio-hero__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .portfolio-hero__name {
+    font-size: 2.1rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--color-ink);
+    letter-spacing: -0.02em;
+  }
+
+  .portfolio-hero__en {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    margin-left: 0.5rem;
+  }
+
+  .portfolio-hero__identity {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--color-ink-soft);
+    word-break: keep-all;
+    max-width: 44rem;
+  }
+
+  .portfolio-hero__contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .contact-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--color-ink-soft);
+    background: var(--color-paper-soft);
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    text-decoration: none;
+    transition: all 140ms ease;
+  }
+
+  .contact-chip:hover {
+    border-color: var(--color-blue);
+    color: var(--color-blue);
+    background: var(--color-paper-blue);
+  }
+
+  /* Projects Section */
+  .portfolio-projects {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .projects-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-line-strong);
+  }
+
+  .projects-section-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+
+  .projects-section-count {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-faint);
+  }
+
+  .projects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2.25rem;
+  }
+
+  /* Project Card */
+  .project-card {
+    background: var(--color-paper-raised);
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    padding: 1.75rem;
+    box-shadow: var(--color-card-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+  }
+
+  .project-card:hover {
+    border-color: var(--color-line-strong);
+    box-shadow: var(--color-card-shadow-hover);
+  }
+
+  .project-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .project-card__title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .project-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    color: var(--color-muted);
+  }
+
+  .project-card__period {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .project-card__divider {
+    color: var(--color-faint);
+  }
+
+  .project-card__role {
+    font-weight: 500;
+  }
+
+  .project-card__name {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--color-ink);
+    line-height: 1.25;
+  }
+
+  .project-card__subtitle {
+    font-size: 0.92rem;
+    color: var(--color-muted);
+    line-height: 1.4;
+  }
+
+  .project-card__links {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .project-link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 140ms ease;
+  }
+
+  .project-link-button--github {
+    background: var(--color-paper-soft);
+    color: var(--color-ink-soft);
+    border: 1px solid var(--color-line);
+  }
+
+  .project-link-button--github:hover {
+    border-color: var(--color-ink);
+    color: var(--color-ink);
+  }
+
+  .project-link-button--blog {
+    background: color-mix(in srgb, var(--color-blue) 12%, transparent);
+    color: var(--color-blue);
+    border: 1px solid color-mix(in srgb, var(--color-blue) 30%, transparent);
+  }
+
+  .project-link-button--blog:hover {
+    background: color-mix(in srgb, var(--color-blue) 20%, transparent);
+  }
+
+  .project-card__summary {
+    padding: 0.75rem 0.95rem;
+    background: var(--color-paper-soft);
+    border-radius: 8px;
+    border-left: 3px solid var(--color-blue);
+  }
+
+  .project-card__summary p {
+    font-size: 0.88rem;
+    color: var(--color-ink);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* 3-Section Grid */
+  .project-spec-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+
+  .project-spec-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .project-spec-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  .spec-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .spec-indicator--constraints {
+    background: #ef4444;
+  }
+
+  .spec-indicator--tradeoff {
+    background: #f59e0b;
+  }
+
+  .spec-indicator--metrics {
+    background: #10b981;
+  }
+
+  .project-spec-desc {
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--color-ink-soft);
+    margin: 0;
+    padding-left: 0.85rem;
+    word-break: keep-all;
+  }
+
+  /* Tech Stack Footer */
+  .project-card__footer {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-line);
+  }
+
+  .tech-stack-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .tech-stack-badge {
+    padding: 0.2rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: var(--color-paper-soft);
+    color: var(--color-muted);
+    border-radius: 6px;
+    border: 1px solid var(--color-line);
+  }
+
+  /* Footer */
+  .portfolio-footer {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-line);
+  }
+
+  .portfolio-footer p {
+    font-size: 0.78rem;
+    color: var(--color-faint);
+    margin: 0;
+  }
+
+  @media (max-width: 640px) {
+    .project-card__header {
+      flex-direction: column;
+    }
+    .portfolio-hero__name {
+      font-size: 1.7rem;
+    }
+  }
+</style>
