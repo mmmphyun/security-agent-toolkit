@@ -7,5 +7,6 @@
 **/*.db
 **/node_modules/
 **/dist/
+**/.next/
 **/.design/screenshots/*
 !**/.design/screenshots/.gitkeep
