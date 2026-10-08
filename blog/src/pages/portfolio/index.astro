@@ -115,6 +115,13 @@ const projects: ProjectSpec[] = [
       </div>
 
       <div class="portfolio-hero__contact">
+        <span class="contact-chip contact-chip--badge">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+            <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+          </svg>
+          <span>충남대학교 컴퓨터융합학부 (4학년 휴학)</span>
+        </span>
         <a href="mailto:gksdmqdbs@gmail.com" class="contact-chip">
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="2" y="4" width="20" height="16" rx="2"></rect>
@@ -134,8 +141,8 @@ const projects: ProjectSpec[] = [
     <!-- Projects Section -->
     <section class="portfolio-projects">
       <div class="projects-section-head">
-        <h2 class="projects-section-title">Core Engineering Projects</h2>
-        <span class="projects-section-count">4 Selected Projects</span>
+        <h2 class="projects-section-title">핵심 엔지니어링 프로젝트</h2>
+        <span class="projects-section-count">4개 프로젝트</span>
       </div>
 
       <div class="projects-list">
@@ -153,7 +160,7 @@ const projects: ProjectSpec[] = [
                 <p class="project-card__subtitle">{project.subtitle}</p>
               </div>
 
-              <!-- Action Links -->
+              <!-- Action Links (Always top-right aligned) -->
               <div class="project-card__links">
                 {project.githubUrl && (
                   <a
@@ -175,7 +182,7 @@ const projects: ProjectSpec[] = [
                     rel="noopener noreferrer"
                     class="project-link-button project-link-button--blog"
                   >
-                    <span>{project.blogLabel ?? "Blog"}</span>
+                    <span>{project.blogLabel ?? "블로그"}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <line x1="7" y1="17" x2="17" y2="7"></line>
                       <polyline points="7 7 17 7 17 17"></polyline>
@@ -190,28 +197,28 @@ const projects: ProjectSpec[] = [
               <p>{project.summary}</p>
             </div>
 
-            <!-- Spec 3-Section Grid/List -->
+            <!-- Spec 3-Section Grid/List with Structured Index Labels -->
             <div class="project-spec-grid">
               <section class="project-spec-block">
                 <h4 class="project-spec-label">
-                  <span class="spec-indicator spec-indicator--constraints" aria-hidden="true"></span>
-                  핵심 제약 및 병목
+                  <span class="spec-index" aria-hidden="true">01</span>
+                  <span>핵심 제약 및 병목</span>
                 </h4>
                 <p class="project-spec-desc">{project.constraints}</p>
               </section>
 
               <section class="project-spec-block">
                 <h4 class="project-spec-label">
-                  <span class="spec-indicator spec-indicator--tradeoff" aria-hidden="true"></span>
-                  설계 트레이드오프
+                  <span class="spec-index" aria-hidden="true">02</span>
+                  <span>설계 트레이드오프</span>
                 </h4>
                 <p class="project-spec-desc">{project.tradeoff}</p>
               </section>
 
               <section class="project-spec-block">
                 <h4 class="project-spec-label">
-                  <span class="spec-indicator spec-indicator--metrics" aria-hidden="true"></span>
-                  구현 및 실측 검증
+                  <span class="spec-index" aria-hidden="true">03</span>
+                  <span>구현 및 실측 검증</span>
                 </h4>
                 <p class="project-spec-desc">{project.metrics}</p>
               </section>
@@ -346,6 +353,17 @@ const projects: ProjectSpec[] = [
     background: var(--color-paper-blue);
   }
 
+  .contact-chip--badge {
+    color: var(--color-muted);
+    cursor: default;
+  }
+
+  .contact-chip--badge:hover {
+    border-color: var(--color-line);
+    color: var(--color-muted);
+    background: var(--color-paper-soft);
+  }
+
   /* Projects Section */
   .portfolio-projects {
     display: flex;
@@ -402,14 +420,15 @@ const projects: ProjectSpec[] = [
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 1.25rem;
   }
 
   .project-card__title-group {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .project-card__meta {
@@ -418,6 +437,7 @@ const projects: ProjectSpec[] = [
     gap: 0.45rem;
     font-size: 0.78rem;
     color: var(--color-muted);
+    flex-wrap: wrap;
   }
 
   .project-card__period {
@@ -450,7 +470,7 @@ const projects: ProjectSpec[] = [
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-shrink: 0;
   }
 
   .project-link-button {
@@ -463,6 +483,7 @@ const projects: ProjectSpec[] = [
     border-radius: 8px;
     text-decoration: none;
     transition: all 140ms ease;
+    white-space: nowrap;
   }
 
   .project-link-button--github {
@@ -516,7 +537,7 @@ const projects: ProjectSpec[] = [
   .project-spec-label {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
+    gap: 0.5rem;
     font-size: 0.82rem;
     font-weight: 700;
     color: var(--color-ink);
@@ -524,22 +545,19 @@ const projects: ProjectSpec[] = [
     margin: 0;
   }
 
-  .spec-indicator {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-  }
-
-  .spec-indicator--constraints {
-    background: #ef4444;
-  }
-
-  .spec-indicator--tradeoff {
-    background: #f59e0b;
-  }
-
-  .spec-indicator--metrics {
-    background: #10b981;
+  .spec-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-muted);
+    background: var(--color-paper-soft);
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    padding: 0.1rem 0.35rem;
+    line-height: 1.2;
   }
 
   .project-spec-desc {
@@ -547,7 +565,7 @@ const projects: ProjectSpec[] = [
     line-height: 1.55;
     color: var(--color-ink-soft);
     margin: 0;
-    padding-left: 0.85rem;
+    padding-left: 1.6rem;
     word-break: keep-all;
   }
 
