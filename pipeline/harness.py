@@ -376,7 +376,7 @@ def check_code_paths(content: str, current_file: Path) -> list[str]:
     for block in code_blocks:
         first_few_lines = "\n".join(block.strip().splitlines()[:3])
         # 주석 형태의 파일 경로 매칭 (src/..., agent_core/..., projects/...)
-        matched_paths = re.findall(r"(?:#|//|\*)\s*.*?([a-zA-Z0-9_\-\./\\]+\.(?:py|ts|js|tsx|jsx|go|rs|java|json|yaml|yml))", first_few_lines)
+        matched_paths = re.findall(r"(?:#|//|\*)\s*.*?([a-zA-Z0-9_\-\./\\]+\.(?:py|tsx|jsx|ts|js|go|rs|java|json|yaml|yml)\b)", first_few_lines)
         for raw_path in matched_paths:
             clean_path = raw_path.strip().replace("\\", "/")
             if "/" not in clean_path or clean_path.startswith("http") or clean_path.startswith("."):
