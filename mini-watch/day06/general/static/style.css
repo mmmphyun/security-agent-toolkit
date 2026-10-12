@@ -1,0 +1,36 @@
+body {
+    font-family: sans-serif;
+    margin: 32px;
+    line-height: 1.6;
+}
+
+h1 {
+    color: steelblue;
+}
+
+h2 {
+    color: darkgreen;
+}
+
+label {
+    display: block;
+}
+
+input, textarea, button {
+    font: inherit;
+}
+
+input, textarea {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 560px;
+    padding: 8px;
+}
+
+.error {
+    color: firebrick;
+}
+
+.post-body {
+    white-space: pre-wrap;
+}
