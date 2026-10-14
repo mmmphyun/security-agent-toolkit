@@ -281,7 +281,7 @@ const projects: ProjectSpec[] = [
 
           <div class="project-card__summary">
             <p><strong>핵심 조치:</strong> Pydantic v2 계약 모델, 모의 데이터 체인, 디렉터리 화이트리스트 CI 검사기, 교차 계약 테스트</p>
-            <p style="margin-top: 0.3rem;"><strong>운영 성과:</strong> 4인 병렬 개발 환경에서 모듈 연동 스키마 불일치 0건 및 Git 병합 충돌 0건 달성, 전 직무 교차 계약 테스트 5종 구축</p>
+            <p style="margin-top: 0.3rem;"><strong>운영 성과:</strong> 이슈 #112(모의 데이터 단절 결함) 식별 후 교차 계약 하네스 구축, 체계 도입 이후 모듈 연동 스키마 불일치 재발 0건 및 Git 병합 충돌 0건 달성</p>
           </div>
 
           <details class="governance-details">
@@ -299,7 +299,7 @@ const projects: ProjectSpec[] = [
                     <span>배경 및 문제</span>
                   </h4>
                   <p class="project-spec-desc">
-                    수집 모듈이 미완성된 상태에서 후행 탐지·대응 모듈 개발이 블로킹되는 병목이 있었으며, 4인이 각자 도메인을 개발하는 과정에서 모의 데이터와 실제 이벤트 스키마 간의 정합성 불일치가 발생할 위험이 있었습니다.
+                    수집 모듈이 미완성된 상태에서 후행 탐지·대응 모듈 개발이 블로킹되는 병목이 있었으며, 4인이 각자 도메인을 개발하는 과정에서 모의 데이터와 실제 이벤트 스키마 간의 정합성 불일치(이슈 #112)가 발생했습니다.
                   </p>
                 </section>
 
@@ -319,7 +319,7 @@ const projects: ProjectSpec[] = [
                     <span>측정 성과</span>
                   </h4>
                   <p class="project-spec-desc">
-                    선행 모듈 완성을 기다리지 않고 탐지·대응 모듈 개발을 독립 완결했습니다. 스키마 결함 발생 시 회피하지 않고 시스템 하드가드로 회귀 방지 체계를 구축하여 최종 통합 시 인터페이스 붕괴 없이 배포를 완료했습니다.
+                    선행 결함(이슈 #112) 직후 전 구간 교차 계약 테스트 5종과 화이트리스트 하네스를 구축하여, 체계 도입 이후 최종 배포까지 모듈 연동 스키마 불일치 재발 0건 및 Git 머지 충돌 0건을 유지했습니다.
                   </p>
                 </section>
               </div>
