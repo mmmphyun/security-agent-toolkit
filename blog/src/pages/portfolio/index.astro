@@ -27,12 +27,12 @@ const projects: ProjectSpec[] = [
     id: "cloudshield",
     title: "CloudShield",
     subtitle: "클라우드 침해 위협 탐지 및 자동 격리 파이프라인",
-    period: "2026.08 - 현재",
+    period: "2026.08 - 현재 (2026.11 수료 예정)",
     role: "부트캠프 캡스톤 팀장 (L4·L7 다중 계층 차단 엔진, 동시성 상태 관리자 구현)",
     summary: "176ms 만에 끝나는 SSH 무차별 대입 공격 세션에서 10초 이내에 다중 계층 차단을 끝내는 멱등 격리 파이프라인",
     constraints: "단일 SSH 세션이 176ms 만에 닫히는 데 비해 로그 수집 지연이 길어 세션 중간 가로채기가 불가능하고, 분할 인입 시 무상태 서버리스 환경에서 공격 탐지가 누락되는 문제",
-    tradeoff: "실시간 패킷 인터셉트 대신 사후 보안 그룹 전면 교체로 후속 접속을 원천 차단하고 웹 방화벽 IP 차단을 함께 집행하는 구조 채택",
-    metrics: "15개 스레드 동시 경합으로 DynamoDB 3버킷 원자적 누적을 검증: 쓰기 유실 0%, P50 쓰기 지연 36.47ms, 단위 및 통합 테스트 881건 통과",
+    tradeoff: "실시간 패킷 인터셉트 대신 사후 보안 그룹 전면 교체로 후속 접속을 차단하고 웹 방화벽 IP 차단을 함께 집행하는 구조 채택",
+    metrics: "15개 스레드 동시 경합으로 DynamoDB 3버킷 원자적 누적 검증(쓰기 유실 0.0%, P50 지연 36.47ms), 8대 모의 공격 시나리오(경계면 분할·버스트) 100% 전수 통과",
     techStack: ["AWS Lambda", "EC2", "WAFv2", "DynamoDB", "Boto3", "Pydantic v2", "Moto"],
     githubUrl: "https://github.com/mmmphyun/aleph-project",
     blogUrl: withBase("/blog/?category=%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2Fcloudshield+%EC%84%9C%EB%B2%84%EB%A6%AC%EC%8A%A4+%EB%B3%B4%EC%95%88+%EC%98%A4%EC%BC%80%EC%8A%A4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%85%98"),
@@ -42,12 +42,12 @@ const projects: ProjectSpec[] = [
     id: "rpg-sync",
     title: "RPG Sync System",
     subtitle: "분산 환경 데이터 동기화 및 장애 자가 치유 엔진",
-    period: "2026.04 - 2026.08",
+    period: "2026.04 - 2026.07 (4개월)",
     role: "1인 단독 설계 및 풀스택 구현 (백엔드 API, 봇, 게임 서버 플러그인, 클라우드 인프라)",
     summary: "1GB RAM 소형 가상머신과 200ms 물리 지연 환경에서 데이터 유실 없이 트랜잭션을 처리하는 자가 치유 커넥션 풀 및 경량 분산 락",
     constraints: "GCP e2-micro 1GB RAM 호스트 한계, 미국 서부 서버와 한국 데이터베이스 간 200ms 물리 왕복 지연, 메인 틱 멈춤 현상과 커넥션 풀러 세션 충돌",
     tradeoff: "사전 연결 확인 질의를 없애 지연을 줄이고 OS 커널 TCP 연결 유지 설정과 장애 감지 시 1회 즉시 재연결하는 데코레이터, 15초 안전 만료 분산 락 채택",
-    metrics: "일반 질의 응답 405.66ms에서 243.41ms로 40% 단축, 인메모리 캐시 16.18ms 달성, 동시 승인 경합 20건 중 오류율 0%, 암호화 가상 사설망 터널 구축",
+    metrics: "웹소켓 하트비트 지터 206ms → 14.64ms(92.9% 억제), 쿼리 응답 405.66ms → 243.41ms(캐시 16.18ms), 소켓 강제 종료 모의 테스트 100% 자가 복구, 동시 승인 경합 20건 오류율 0.0%",
     techStack: ["Python", "FastAPI", "Redis", "PostgreSQL", "PaperMC", "Tailscale", "Docker"],
     githubUrl: "https://github.com/mmmphyun/rpg_sync_project",
     blogUrl: withBase("/blog/?category=%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F%EC%8B%A4%EC%8B%9C%EA%B0%84+rpg+%EB%8F%99%EA%B8%B0%ED%99%94+%EC%97%94%EC%A7%84"),
@@ -60,9 +60,9 @@ const projects: ProjectSpec[] = [
     period: "2026.09 - 2026.10 (3주, 프로토타입)",
     role: "1인 단독 연구 개발 (암호화 코어, 네이티브 호스트, 확장 프로그램, 50대 웹 스캔)",
     summary: "중앙 서버 없이 기기 TPM 2.0 보안 모듈에서 암호키를 직접 유도하고 메모리 즉시 소거로 평문 잔류를 막는 로컬 볼트 (연구 검증 후 동결)",
-    constraints: "윈도우 11 내장 인증자의 PRF 인터페이스 폐쇄, 브라우저 프로세스 메모리 덤프 노출 위협, 국내 웹사이트 가상 키패드의 자동완성 간섭",
-    tradeoff: "서버 저장 방식 대신 윈도우 암호화 API FFI 직접 연동 네이티브 호스트 구현 및 Rust Wasm 메모리 강제 소거 로직 채택",
-    metrics: "네이티브 호스트 32바이트 대칭키 유도 왕복 검증, 선형 메모리 0x00 즉각 소거, 국내 50대 웹 스캔(가상 키패드 6.7% 차단, 길이 제약 엔트로피 20% 손실 규명)",
+    constraints: "Windows 11 내장 webauthn.dll의 플랫폼 인증자 PRF 인터페이스 차단 실측, 브라우저 프로세스 가비지 컬렉터 지연으로 인한 힙 메모리 평문 키 잔류 공격 표면 노출",
+    tradeoff: "서버 중앙 저장 대신 Windows CNG ncrypt.dll C-FFI 직접 연동 Chrome Native Messaging Host를 구축하고, Rust Wasm zeroize 기반 선형 메모리 즉각 물리 소거 채택",
+    metrics: "네이티브 FFI 파이프라인 단위 테스트 17건 100% 통과, 32바이트 하드웨어 대칭키 유도 왕복 검증, Rust Wasm 선형 메모리 즉시 0x00 소거 실증 (국내 50대 웹 스캔 자동완성 차단 규명 병행)",
     techStack: ["Rust", "Wasm", "zeroize", "Windows CNG", "Chrome MV3", "TypeScript", "Playwright"],
     githubUrl: "https://github.com/mmmphyun/PrfVault",
     blogUrl: withBase("/blog/?category=%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2Fprfvault+%EC%A0%9C%EB%A1%9C+%EC%84%9C%EB%B2%84+%ED%8C%A8%EC%8A%A4%EC%9B%8C%EB%93%9C%EB%A6%AC%EC%8A%A4+%EA%B8%88%EA%B3%A0"),
@@ -281,7 +281,7 @@ const projects: ProjectSpec[] = [
 
           <div class="project-card__summary">
             <p><strong>핵심 조치:</strong> Pydantic v2 계약 모델, 모의 데이터 체인, 디렉터리 화이트리스트 CI 검사기, 교차 계약 테스트</p>
-            <p style="margin-top: 0.3rem;"><strong>운영 성과:</strong> 코드 리뷰를 통해 모의 데이터 체인 단절을 식별·차단하고, 전 직무 교차 계약 테스트 5종 신설로 모듈 통합 무결성 완결</p>
+            <p style="margin-top: 0.3rem;"><strong>운영 성과:</strong> 4인 병렬 개발 환경에서 모듈 연동 스키마 불일치 0건 및 Git 병합 충돌 0건 달성, 전 직무 교차 계약 테스트 5종 구축</p>
           </div>
 
           <details class="governance-details">
