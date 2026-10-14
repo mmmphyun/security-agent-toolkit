@@ -1,0 +1,8 @@
+CREATE TABLE http_events (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    method TEXT NOT NULL,
+    path TEXT NOT NULL,
+    status_code INTEGER NOT NULL,
+    event_type TEXT NOT NULL
+);

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>게시글 목록 | mini-watch</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>일반 서비스</h1>
+    <h2>게시글 목록</h2>
+    <p><a href="/board/new">새 게시글 작성</a></p>
+    {% if login_user %}
+    <p>{{ login_user.username }} 님이 로그인했습니다.</p>
+    <form action="/logout" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">로그아웃</button>
+    </form>
+    {% else %}
+    <p><a href="/login">로그인</a></p>
+    {% endif %}
+    {% if posts %}
+    <ul>
+        {% for post in posts %}
+        <li><a href="/board/{{ post.id }}">{{ post.title }}</a></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>아직 게시글이 없습니다.</p>
+    {% endif %}
+</body>
+</html>

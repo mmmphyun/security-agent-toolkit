@@ -1,0 +1,60 @@
+{
+  "duration": {
+    "instant": "50ms",
+    "fast": "150ms",
+    "normal": "250ms",
+    "slow": "350ms",
+    "press": "100ms"
+  },
+  "easing": {
+    "standard": "cubic-bezier(0.4, 0.0, 0.2, 1)",
+    "decelerate": "cubic-bezier(0.0, 0.0, 0.2, 1)",
+    "accelerate": "cubic-bezier(0.4, 0.0, 1, 1)",
+    "apple-default": "cubic-bezier(0.25, 1, 0.5, 1)",
+    "apple-spring": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "apple-smooth": "cubic-bezier(0.32, 0.72, 0, 1)",
+    "apple-snappy": "cubic-bezier(0.2, 0, 0, 1)"
+  },
+  "springs": {
+    "snappy": {
+      "stiffness": 400,
+      "damping": 30,
+      "mass": 1
+    },
+    "gentle": {
+      "stiffness": 200,
+      "damping": 20,
+      "mass": 1
+    },
+    "bouncy": {
+      "stiffness": 300,
+      "damping": 15,
+      "mass": 1
+    },
+    "interactive-press": {
+      "stiffness": 500,
+      "damping": 30,
+      "mass": 0.8
+    },
+    "modal-sheet": {
+      "stiffness": 300,
+      "damping": 28,
+      "mass": 1.0
+    },
+    "page-transition": {
+      "stiffness": 220,
+      "damping": 26,
+      "mass": 1.2
+    },
+    "tooltip-pop": {
+      "stiffness": 600,
+      "damping": 35,
+      "mass": 0.5
+    }
+  },
+  "constraints": {
+    "maxMicroInteractionDuration": "350ms",
+    "tactilePressScale": 0.98,
+    "allowedMotionProperties": ["transform", "opacity", "filter"]
+  }
+}
