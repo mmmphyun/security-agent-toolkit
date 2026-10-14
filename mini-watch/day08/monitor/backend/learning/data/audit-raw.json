@@ -1,0 +1,58 @@
+[
+  {
+    "id": "a1",
+    "person": "user-17",
+    "at": "2026-10-14T00:00:00Z",
+    "action": "login_failure",
+    "address": "203.0.113.66"
+  },
+  {
+    "id": "a2",
+    "person": "user-17",
+    "at": "2026-10-14T00:00:30Z",
+    "action": "login_failure",
+    "address": "203.0.113.66"
+  },
+  {
+    "id": "a3",
+    "person": "user-17",
+    "at": "2026-10-14T00:01:00Z",
+    "action": "login_success",
+    "address": "203.0.113.66"
+  },
+  {
+    "id": "a4",
+    "person": "mira@example.test",
+    "at": "2026-10-14T00:02:00Z",
+    "action": "download",
+    "address": "203.0.113.66"
+  },
+  {
+    "id": "a5",
+    "person": "user-23",
+    "at": "2026-10-14T00:02:10Z",
+    "action": "download",
+    "address": "198.51.100.20"
+  },
+  {
+    "id": "a6",
+    "person": "mira@example.test",
+    "at": "2026-10-14T00:08:00Z",
+    "action": "download",
+    "address": "203.0.113.10"
+  },
+  {
+    "id": "a7",
+    "person": "user-17",
+    "at": "2026-10-13T23:59:00Z",
+    "action": "download",
+    "address": "203.0.113.10"
+  },
+  {
+    "id": "a8",
+    "person": "unknown-user",
+    "at": "2026-10-14T00:02:30Z",
+    "action": "download",
+    "address": "203.0.113.66"
+  }
+]
