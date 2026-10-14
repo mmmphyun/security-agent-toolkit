@@ -752,8 +752,15 @@ EXCLUDED_ROOT_DIRS = {
 }
 
 
-def extract_course_prefix(course_dir: Path, fallback_index: int) -> str:
+def extract_course_prefix(course_dir: Path, fallback_index: int, day_id: str | None = None) -> str:
     """과목 README.md 또는 디렉토리명에서 과목 접두사(c01, c02, ...) 추출"""
+    # mini-watch 4-5과목 통합 프로젝트 분기
+    if course_dir.name in ("mini-watch", "mini_watch") and day_id:
+        day_match = re.search(r"\d+", day_id)
+        if day_match and int(day_match.group()) >= 6:
+            return "c05"
+        return "c04"
+
     readme_path = course_dir / "README.md"
     if readme_path.exists():
         content = readme_path.read_text(encoding="utf-8")
@@ -789,13 +796,13 @@ def scan_pending_targets(repo_root: Path) -> list[dict[str, str]]:
             course_dirs.append(d)
 
     for idx, course_dir in enumerate(course_dirs, 1):
-        prefix = extract_course_prefix(course_dir, fallback_index=idx)
         for item in sorted(course_dir.iterdir()):
             if item.is_dir() and item.name.startswith("day"):
                 # 타 일차 통합 또는 의도적 제외 마커 파일 확인
                 if (item / ".integrated").exists() or (item / ".skip").exists():
                     continue
 
+                prefix = extract_course_prefix(course_dir, fallback_index=idx, day_id=item.name)
                 target_slug = f"{prefix}-{course_dir.name.replace('_', '-')}-{item.name}"
                 if target_slug not in existing_slugs:
                     pending.append({
