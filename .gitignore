@@ -1,39 +1,12 @@
-# Python
-__pycache__/
-*.py[cod]
-*.class
-*.so
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Logs
-*.log
-
-# Environment variables & secrets
-.env
-.env.*
-
-# IDEs
-.vscode/
-.idea/
-
-# Local Agent Handoff Context
-.context/
-
-# Build & Distribution
-build/
-*.egg-info/
-*.egg
-
-# Node & Frontend
-node_modules/
-dist/
-.astro/
-.cache/
-
-# humanize-korean 파이프라인 임시 작업 디렉터리
-_workspace/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.pyc
+**/.env
+**/logs/
+**/*.db
+**/node_modules/
+**/dist/
+**/.next/
+**/.design/screenshots/*
+!**/.design/screenshots/.gitkeep

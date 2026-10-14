@@ -1,0 +1,61 @@
+name: m5d1-general
+services:
+  general-db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: general_db
+      POSTGRES_USER: sample
+      POSTGRES_PASSWORD: sample-only-pass
+    volumes:
+      - general-data:/var/lib/postgresql/data
+      - ./general/sql/docker-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      - general-data-net
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U sample -d general_db
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    stop_grace_period: 30s
+
+  general-api:
+    build: ./general
+    image: m5d1-general-api:latest
+    environment:
+      DB_HOST: general-db
+      DB_PORT: "5432"
+      DB_NAME: general_db
+      DB_USER: sample
+      DB_PASSWORD: sample-only-pass
+      SECRET_KEY: sample-general-session-key-not-for-production
+      MONITOR_URL: http://monitor-api:5000/api/events
+    depends_on:
+      general-db:
+        condition: service_healthy
+    networks:
+      - general-front-net
+      - general-data-net
+      - events-net
+
+  general-gateway:
+    image: nginx:1.28-alpine
+    ports:
+      - 8081:80
+    volumes:
+      - ./gateways/general.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - general-api
+    networks:
+      - general-front-net
+
+volumes:
+  general-data: {}
+
+networks:
+  general-front-net: {}
+  general-data-net: {}
+  events-net:
+    external: true
+    name: m5d1-events
