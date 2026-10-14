@@ -72,6 +72,7 @@ PROJECT_CATEGORY_MAP = {
     "proj-devlog-agent-pipeline": "프로젝트/DevLog 자율 에이전트",
     "proj-ru-beacon": "프로젝트/마인크래프트 분산 연동 플랫폼",
     "proj-aleph-project": "프로젝트/CloudShield 서버리스 보안 오케스트레이션",
+    "proj-prfvault": "프로젝트/PrfVault 제로 서버 패스워드리스 금고",
 }
 
 
