@@ -2,88 +2,49 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { SITE } from "../../config";
 import { withBase } from "../../lib/site-path";
+import * as content from "./_portfolio_content.md";
 
 const pageTitle = `Portfolio | 한승윤 (Seungyun Han)`;
 const pageDescription = "클라우드 인프라·운영 자동화 엔지니어를 준비하며, 지연 시간과 보안 제약 속에서 시스템 병목을 계측하고 자동화와 방어적 설계를 통해 운영 안정성을 확보하는 엔지니어 한승윤의 포트폴리오";
 
-interface ProjectSpec {
-  id: string;
-  title: string;
-  subtitle: string;
-  period: string;
-  role: string;
-  summary: string;
-  constraints: string;
-  tradeoff: string;
-  metrics: string;
-  techStack: string[];
-  githubUrl: string;
-  blogUrl?: string;
-  blogLabel?: string;
+interface KpiCard {
+  label: string;
+  value: string;
+  sub: string;
 }
 
-const projects: ProjectSpec[] = [
-  {
-    id: "cloudshield",
-    title: "CloudShield",
-    subtitle: "클라우드 침해 위협 탐지 및 자동 격리 파이프라인",
-    period: "2026.08 - 현재 (2026.11 수료 예정)",
-    role: "부트캠프 캡스톤 팀장 (L4·L7 다중 계층 차단 엔진, 동시성 상태 관리자 구현)",
-    summary: "176ms 만에 끝나는 SSH 무차별 대입 공격 세션에서 10초 이내에 다중 계층 차단을 끝내는 멱등 격리 파이프라인",
-    constraints: "단일 SSH 세션이 176ms 만에 닫히는 데 비해 로그 수집 지연이 길어 세션 중간 가로채기가 불가능하고, 분할 인입 시 무상태 서버리스 환경에서 공격 탐지가 누락되는 문제",
-    tradeoff: "실시간 패킷 인터셉트 대신 사후 보안 그룹 전면 교체로 후속 접속을 차단하고 웹 방화벽 IP 차단을 함께 집행하는 구조 채택",
-    metrics: "15개 스레드 동시 경합으로 DynamoDB 3버킷 원자적 누적 검증(쓰기 유실 0.0%, P50 지연 36.47ms), 8대 모의 공격 시나리오(경계면 분할·버스트) 100% 전수 통과",
-    techStack: ["AWS Lambda", "EC2", "WAFv2", "DynamoDB", "Boto3", "Pydantic v2", "Moto"],
-    githubUrl: "https://github.com/mmmphyun/aleph-project",
-    blogUrl: withBase("/blog/?category=%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2Fcloudshield+%EC%84%9C%EB%B2%84%EB%A6%AC%EC%8A%A4+%EB%B3%B4%EC%95%88+%EC%98%A4%EC%BC%80%EC%8A%A4%ED%8A%B8%EB%A0%88%EC%9D%B4%EC%85%98"),
-    blogLabel: "기술 블로그 시리즈",
-  },
-  {
-    id: "rpg-sync",
-    title: "RPG Sync System",
-    subtitle: "분산 환경 데이터 동기화 및 장애 자가 치유 엔진",
-    period: "2026.04 - 2026.07 (4개월)",
-    role: "1인 단독 설계 및 풀스택 구현 (백엔드 API, 봇, 게임 서버 플러그인, 클라우드 인프라)",
-    summary: "1GB RAM 소형 가상머신과 200ms 물리 지연 환경에서 데이터 유실 없이 트랜잭션을 처리하는 자가 치유 커넥션 풀 및 경량 분산 락",
-    constraints: "GCP e2-micro 1GB RAM 호스트 한계, 미국 서부 서버와 한국 데이터베이스 간 200ms 물리 왕복 지연, 메인 틱 멈춤 현상과 커넥션 풀러 세션 충돌",
-    tradeoff: "사전 연결 확인 질의를 없애 지연을 줄이고 OS 커널 TCP 연결 유지 설정과 장애 감지 시 1회 즉시 재연결하는 데코레이터, 15초 안전 만료 분산 락 채택",
-    metrics: "웹소켓 하트비트 지터 206ms → 14.64ms(92.9% 억제), 쿼리 응답 405.66ms → 243.41ms(캐시 16.18ms), 소켓 강제 종료 모의 테스트 100% 자가 복구, 동시 승인 경합 20건 오류율 0.0%",
-    techStack: ["Python", "FastAPI", "Redis", "PostgreSQL", "PaperMC", "Tailscale", "Docker"],
-    githubUrl: "https://github.com/mmmphyun/rpg_sync_project",
-    blogUrl: withBase("/blog/?category=%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F%EC%8B%A4%EC%8B%9C%EA%B0%84+rpg+%EB%8F%99%EA%B8%B0%ED%99%94+%EC%97%94%EC%A7%84"),
-    blogLabel: "기술 블로그 시리즈",
-  },
-  {
-    id: "prfvault",
-    title: "PrfVault",
-    subtitle: "WebAuthn PRF 기반 하드웨어 바인딩 로컬 볼트 및 보안 실태 실증 연구",
-    period: "2026.09 - 2026.10 (3주, 프로토타입)",
-    role: "1인 단독 연구 개발 (암호화 코어, 네이티브 호스트, 확장 프로그램, 50대 웹 스캔)",
-    summary: "중앙 서버 없이 기기 TPM 2.0 보안 모듈에서 암호키를 직접 유도하고 메모리 즉시 소거로 평문 잔류를 막는 로컬 볼트 (연구 검증 후 동결)",
-    constraints: "Windows 11 내장 webauthn.dll의 플랫폼 인증자 PRF 인터페이스 차단 실측, 브라우저 프로세스 가비지 컬렉터 지연으로 인한 힙 메모리 평문 키 잔류 공격 표면 노출",
-    tradeoff: "서버 중앙 저장 대신 Windows CNG ncrypt.dll C-FFI 직접 연동 Chrome Native Messaging Host를 구축하고, Rust Wasm zeroize 기반 선형 메모리 즉각 물리 소거 채택",
-    metrics: "네이티브 FFI 파이프라인 단위 테스트 17건 100% 통과, 32바이트 하드웨어 대칭키 유도 왕복 검증, Rust Wasm 선형 메모리 즉시 0x00 소거 실증 (국내 50대 웹 스캔 자동완성 차단 규명 병행)",
-    techStack: ["Rust", "Wasm", "zeroize", "Windows CNG", "Chrome MV3", "TypeScript", "Playwright"],
-    githubUrl: "https://github.com/mmmphyun/PrfVault",
-    blogUrl: withBase("/blog/?category=%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2Fprfvault+%EC%A0%9C%EB%A1%9C+%EC%84%9C%EB%B2%84+%ED%8C%A8%EC%8A%A4%EC%9B%8C%EB%93%9C%EB%A6%AC%EC%8A%A4+%EA%B8%88%EA%B3%A0"),
-    blogLabel: "기술 블로그 시리즈",
-  },
-  {
-    id: "ru-beacon",
-    title: "ru-beacon",
-    subtitle: "게임 서버 이벤트 연동 및 DAG 워크플로우 자동화 플랫폼",
-    period: "2026.09 - 현재",
-    role: "1인 단독 설계 및 개발 (API 서버, 봇, 워커, 게임 서버 플러그인, K3s 배포)",
-    summary: "외부 게임 서버의 50ms 틱 루프 간섭을 0ms로 격리하고 초당 1,000건 요청 스파이크를 방어하는 2단계 분산 동시성 제어 엔진",
-    constraints: "마인크래프트 메인 스레드 블로킹 절대 금지, 소형 인프라 환경에서 초당 1,000건 선착순 요청 유입 시 데이터베이스 커넥션 풀 고갈 위험",
-    tradeoff: "무거운 카프카 대신 경량 Redis Streams 메시지 버스를 채택하고, 단순 DB 트랜잭션 대신 Redis Lua 사전 탈락 처리와 DB 영속화의 2단계 제어 채택",
-    metrics: "k6 부하 테스트 피크 초당 1,000건 중 99.36%를 평균 1.17ms 만에 사전 차단(초과 발급 0건), 미처리 큐 기준 워커 2대에서 10대 자동 확장, 메인 틱 간섭 0ms",
-    techStack: ["Kotlin", "Coroutines", "Ktor", "Redis Streams", "KEDA", "K3s", "PostgreSQL"],
-    githubUrl: "https://github.com/mmmphyun/ru-beacon",
-    blogUrl: withBase("/blog/?category=%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%2F%EB%A7%88%EC%9D%B8%ED%81%AC%EB%9E%98%ED%94%84%ED%8A%B8%20%EB%B6%84%EC%82%B0%20%EC%97%B0%EB%8F%99%20%ED%94%8C%EB%9E%AB%ED%8F%BC"),
-    blogLabel: "기술 블로그 시리즈",
-  },
-];
+interface TroubleshootingTask {
+  id: string;
+  topicLabel: string;
+  title: string;
+  problem: string;
+  solution: string[];
+  comparisonHeaders: [string, string, string];
+  comparisonRows: [string, string, string][];
+}
+
+interface ProjectSpec {
+  id: string;
+  index: string;
+  name: string;
+  subtitle: string;
+  domainSummary: string;
+  period: string;
+  scale: string;
+  contribution: string;
+  repoUrl: string;
+  blogLinks?: { title: string; url: string }[];
+  stack: string[];
+  diagramLight: string;
+  diagramDark: string;
+  kpis: KpiCard[];
+  tasks: TroubleshootingTask[];
+}
+
+const heroKpis: KpiCard[] = content.frontmatter.heroKpis;
+const techTiers = content.frontmatter.techTiers;
+const projects: ProjectSpec[] = content.frontmatter.projects;
+const governanceCases = content.frontmatter.governanceCases;
 ---
 
 <BaseLayout
@@ -124,6 +85,12 @@ const projects: ProjectSpec[] = [
           </svg>
           <span>충남대학교 컴퓨터융합학부 (4학년 휴학)</span>
         </span>
+        <span class="contact-chip contact-chip--badge">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <span>보안 자동화 부트캠프 (캡스톤 팀장)</span>
+        </span>
         <a href="mailto:gksdmqdbs@gmail.com" class="contact-chip">
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="2" y="4" width="20" height="16" rx="2"></rect>
@@ -138,35 +105,84 @@ const projects: ProjectSpec[] = [
           <span>github.com/mmmphyun</span>
         </a>
       </div>
+
+      <!-- Hero KPIs 4-Column Grid -->
+      <div class="hero-kpi-grid">
+        {heroKpis.map((kpi) => (
+          <div class="hero-kpi-card">
+            <span class="hero-kpi-label">{kpi.label}</span>
+            <span class="hero-kpi-val">{kpi.value}</span>
+            <span class="hero-kpi-sub">{kpi.sub}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- 3-Tier Tech Stack Section -->
+    <section class="portfolio-tech-stack" id="tech-stack">
+      <div class="projects-section-head">
+        <h2 class="projects-section-title">기술 스택 및 검증 경험</h2>
+        <span class="projects-section-count">3개 분류</span>
+      </div>
+      <div class="tech-tier-list">
+        {techTiers.map((t) => (
+          <div class="tech-tier-card">
+            <div class="tech-tier-header">
+              <span class="tech-tier-badge">{t.tier}</span>
+              <span class="tech-tier-role">{t.role}</span>
+            </div>
+            <div class="tech-tier-stacks">
+              {t.stacks.map((s) => (
+                <span class="tech-stack-badge">{s}</span>
+              ))}
+            </div>
+            <p class="tech-tier-proof">{t.proof}</p>
+            {t.links && t.links.length > 0 && (
+              <div class="tech-tier-links">
+                {t.links.map((link) => (
+                  <a href={link.url} target="_blank" rel="noopener noreferrer" class="tech-tier-link">
+                    <span>{link.label}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <line x1="7" y1="17" x2="17" y2="7"></line>
+                      <polyline points="7 7 17 7 17 17"></polyline>
+                    </svg>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </section>
 
     <!-- Projects Section -->
     <section class="portfolio-projects">
       <div class="projects-section-head">
         <h2 class="projects-section-title">핵심 엔지니어링 프로젝트</h2>
-        <span class="projects-section-count">4개 프로젝트</span>
+        <span class="projects-section-count">4대 핵심 프로젝트</span>
       </div>
 
       <div class="projects-list">
-        {projects.map((project) => (
-          <article class="project-card" id={project.id}>
+        {projects.map((p) => (
+          <article class="project-card" id={p.id}>
             <!-- Card Header -->
             <header class="project-card__header">
               <div class="project-card__title-group">
                 <div class="project-card__meta">
-                  <span class="project-card__period">{project.period}</span>
+                  <span class="spec-index" aria-hidden="true">{p.index}</span>
+                  <span class="project-card__period">{p.period}</span>
                   <span class="project-card__divider">/</span>
-                  <span class="project-card__role">{project.role}</span>
+                  <span class="project-card__role">{p.scale} ({p.contribution})</span>
                 </div>
-                <h3 class="project-card__name">{project.title}</h3>
-                <p class="project-card__subtitle">{project.subtitle}</p>
+                <h3 class="project-card__name">{p.name}</h3>
+                <p class="project-card__subtitle">{p.subtitle}</p>
               </div>
 
-              <!-- Action Links (Always top-right aligned) -->
+              <!-- Action Links -->
               <div class="project-card__links">
-                {project.githubUrl && (
+                {p.repoUrl && (
                   <a
-                    href={project.githubUrl}
+                    href={p.repoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="project-link-button project-link-button--github"
@@ -177,59 +193,113 @@ const projects: ProjectSpec[] = [
                     <span>GitHub</span>
                   </a>
                 )}
-                {project.blogUrl && (
+                {p.blogLinks && p.blogLinks.map((b) => (
                   <a
-                    href={project.blogUrl}
+                    href={b.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="project-link-button project-link-button--blog"
                   >
-                    <span>{project.blogLabel ?? "블로그"}</span>
+                    <span>{b.title}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <line x1="7" y1="17" x2="17" y2="7"></line>
                       <polyline points="7 7 17 7 17 17"></polyline>
                     </svg>
                   </a>
-                )}
+                ))}
               </div>
             </header>
 
-            <!-- Card Summary -->
+            <!-- Domain Summary -->
             <div class="project-card__summary">
-              <p>{project.summary}</p>
+              <p><strong>프로젝트 정의:</strong> {p.domainSummary}</p>
             </div>
 
-            <!-- Spec 3-Section Grid/List with Structured Index Labels -->
-            <div class="project-spec-grid">
-              <section class="project-spec-block">
-                <h4 class="project-spec-label">
-                  <span class="spec-index" aria-hidden="true">01</span>
-                  <span>핵심 제약 및 병목</span>
-                </h4>
-                <p class="project-spec-desc">{project.constraints}</p>
-              </section>
-
-              <section class="project-spec-block">
-                <h4 class="project-spec-label">
-                  <span class="spec-index" aria-hidden="true">02</span>
-                  <span>설계 트레이드오프</span>
-                </h4>
-                <p class="project-spec-desc">{project.tradeoff}</p>
-              </section>
-
-              <section class="project-spec-block">
-                <h4 class="project-spec-label">
-                  <span class="spec-index" aria-hidden="true">03</span>
-                  <span>구현 및 실측 검증</span>
-                </h4>
-                <p class="project-spec-desc">{project.metrics}</p>
-              </section>
+            <!-- KPI Cards Grid -->
+            <div class="project-kpi-grid">
+              {p.kpis.map((kpi) => (
+                <div class="project-kpi-card">
+                  <span class="project-kpi-label">{kpi.label}</span>
+                  <span class="project-kpi-val">{kpi.value}</span>
+                  <span class="project-kpi-sub">{kpi.sub}</span>
+                </div>
+              ))}
             </div>
 
-            <!-- Card Tech Stack Footer -->
+            <!-- Architecture Diagram Viewer -->
+            <div class="arch-viewer">
+              <div class="arch-toolbar">
+                <span class="mono-label">SYSTEM ARCHITECTURE TOPOLOGY</span>
+                <button type="button" class="zoom-trigger" data-light={p.diagramLight} data-dark={p.diagramDark} data-title={p.name}>
+                  확대 보기
+                </button>
+              </div>
+              <div class="arch-canvas">
+                <img src={p.diagramLight} alt={`${p.name} Architecture Light`} class="arch-img arch-light" loading="lazy" />
+                <img src={p.diagramDark} alt={`${p.name} Architecture Dark`} class="arch-img arch-dark" loading="lazy" />
+              </div>
+            </div>
+
+            <!-- Problem Solving & Optimization Section -->
+            <div class="troubleshooting-section">
+              <!-- Quick Jump Anchor Chips -->
+              <div class="troubleshooting-nav" aria-label="문제 해결 목차">
+                <span class="troubleshooting-nav__label">핵심 병목 해결:</span>
+                <div class="troubleshooting-nav__chips">
+                  {p.tasks.map((t, idx) => (
+                    <a href={`#${p.id}-${t.id}`} class="troubleshooting-nav__chip">
+                      <span class="chip-num">#{idx + 1}</span>
+                      <span>{t.topicLabel}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              <!-- Continuous Flat Panels -->
+              <div class="troubleshooting-list">
+                {p.tasks.map((t, idx) => (
+                  <section id={`${p.id}-${t.id}`} class="troubleshooting-card">
+                    <div class="troubleshooting-card__header">
+                      <span class="troubleshooting-card__badge">해결 사례 #{idx + 1}</span>
+                      <h4 class="troubleshooting-card__title">{t.title}</h4>
+                    </div>
+                    <div class="callout-problem">
+                      <span class="callout-badge callout-badge--problem">문제 및 제약 조건</span>
+                      <p>{t.problem}</p>
+                    </div>
+                    <div class="callout-solution">
+                      <span class="callout-badge callout-badge--solution">구현 및 해결 방안</span>
+                      <ul>
+                        {t.solution.map((line) => <li>{line}</li>)}
+                      </ul>
+                    </div>
+                    <div class="comparison-table-wrap">
+                      <table class="comparison-table">
+                        <thead>
+                          <tr>
+                            {t.comparisonHeaders.map((h) => <th>{h}</th>)}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {t.comparisonRows.map((row) => (
+                            <tr>
+                              <td><strong>{row[0]}</strong></td>
+                              <td class="col-before">{row[1]}</td>
+                              <td class="col-after">{row[2]}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </div>
+
+            <!-- Tech Stack Footer -->
             <footer class="project-card__footer">
               <div class="tech-stack-list">
-                {project.techStack.map((tech) => (
+                {p.stack.map((tech) => (
                   <span class="tech-stack-badge">{tech}</span>
                 ))}
               </div>
@@ -242,7 +312,7 @@ const projects: ProjectSpec[] = [
     <!-- Governance & Automation Section -->
     <section class="portfolio-governance">
       <div class="projects-section-head">
-        <h2 class="projects-section-title">협업 및 엔지니어링 거버넌스</h2>
+        <h2 class="projects-section-title">협업 및 자동화 운영</h2>
         <span class="projects-section-count">2개 운영 사례</span>
       </div>
       <p class="governance-section-intro">
@@ -257,7 +327,7 @@ const projects: ProjectSpec[] = [
               <div class="project-card__meta">
                 <span class="project-card__period">2026.08 - 현재</span>
                 <span class="project-card__divider">/</span>
-                <span class="project-card__role">CloudShield 팀장 (협업 하네스 총괄)</span>
+                <span class="project-card__role">CloudShield 팀장 (협업 파이프라인 구축)</span>
               </div>
               <h3 class="project-card__name">계약 기반 병렬 개발 및 역할 분담 영역 격리</h3>
               <p class="project-card__subtitle">모의 데이터 체인 및 화이트리스트 CI 하네스를 통한 4인 무충돌 병렬 개발</p>
@@ -281,7 +351,7 @@ const projects: ProjectSpec[] = [
 
           <div class="project-card__summary">
             <p><strong>핵심 조치:</strong> Pydantic v2 계약 모델, 모의 데이터 체인, 디렉터리 화이트리스트 CI 검사기, 교차 계약 테스트</p>
-            <p style="margin-top: 0.3rem;"><strong>운영 성과:</strong> 이슈 #111(모의 데이터 단절 결함) 식별 후 교차 계약 하네스 구축(PR #112), 체계 도입 이후 모듈 연동 스키마 불일치 재발 0건 및 Git 병합 충돌 0건 달성</p>
+            <p style="margin-top: 0.3rem;"><strong>운영 성과:</strong> 이슈 #111(모의 데이터 단절 결함) 식별 후 교차 계약 하네스 구축(PR #112), 이후 모듈 연동 스키마 불일치 재발 0건 및 Git 병합 충돌 0건 달성</p>
           </div>
 
           <details class="governance-details">
@@ -319,7 +389,7 @@ const projects: ProjectSpec[] = [
                     <span>측정 성과</span>
                   </h4>
                   <p class="project-spec-desc">
-                    선행 결함(이슈 #111) 직후 전 구간 교차 계약 테스트 5종과 화이트리스트 하네스를 구축(PR #112)하여, 체계 도입 이후 최종 배포까지 모듈 연동 스키마 불일치 재발 0건 및 Git 머지 충돌 0건을 유지했습니다.
+                    선행 결함(이슈 #111) 직후 전 구간 교차 계약 테스트 5종과 화이트리스트 하네스를 구축(PR #112)하여, 이후 최종 배포까지 모듈 연동 스키마 불일치 재발 0건 및 Git 머지 충돌 0건을 유지했습니다.
                   </p>
                 </section>
               </div>
@@ -381,7 +451,7 @@ const projects: ProjectSpec[] = [
                     <span>엔지니어링 조치</span>
                   </h4>
                   <p class="project-spec-desc">
-                    실습 코드와 실행 로그를 원천 데이터로 삼아 표준 구조 초안 작성을 보조했습니다. 자체 Linter 하네스와 Astro/Zod 엔진으로 필수 메타데이터를 빌드 타임에 검사하고, 엔지니어가 직접 재현성과 사실 관계를 최종 검수한 뒤 GitHub Actions로 배포했습니다.
+                    실습 코드와 실행 로그를 바탕으로 표준 구조 초안 작성을 보조했습니다. 자체 Linter 하네스와 Astro/Zod 엔진으로 필수 메타데이터를 빌드 타임에 검사하고, 엔지니어가 직접 재현성과 사실 관계를 최종 검수한 뒤 GitHub Actions로 배포했습니다.
                   </p>
                 </section>
 
@@ -411,6 +481,17 @@ const projects: ProjectSpec[] = [
       </div>
     </section>
 
+    <!-- Architecture Lightbox Dialog -->
+    <dialog id="arch-lightbox" class="arch-modal">
+      <div class="arch-modal-header">
+        <span id="arch-modal-title" class="mono-label"></span>
+        <button type="button" id="arch-modal-close" class="arch-modal-close">닫기</button>
+      </div>
+      <div class="arch-modal-body">
+        <img id="arch-modal-img" src="" alt="Expanded Architecture Diagram" />
+      </div>
+    </dialog>
+
     <!-- Footer Copyright -->
     <footer class="portfolio-footer">
       <p>© 2026 한승윤 (Seungyun Han).</p>
@@ -418,18 +499,46 @@ const projects: ProjectSpec[] = [
   </div>
 </BaseLayout>
 
+<script>
+  // 아키텍처 다이어그램 Lightbox 모달
+
+  // 2. 아키텍처 다이어그램 Lightbox 모달
+  const modal = document.getElementById('arch-lightbox') as HTMLDialogElement | null;
+  const modalImg = document.getElementById('arch-modal-img') as HTMLImageElement | null;
+  const modalTitle = document.getElementById('arch-modal-title');
+  const modalClose = document.getElementById('arch-modal-close');
+
+  document.querySelectorAll('.zoom-trigger').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!modal || !modalImg) return;
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || document.documentElement.classList.contains('dark');
+      const src = isDark ? btn.getAttribute('data-dark') : btn.getAttribute('data-light');
+      if (src) modalImg.src = src;
+      if (modalTitle) modalTitle.textContent = btn.getAttribute('data-title') || '';
+      modal.showModal();
+    });
+  });
+
+  modalClose?.addEventListener('click', () => modal?.close());
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) modal.close();
+  });
+</script>
+
 <style>
   :global(.portfolio-page-container) {
     max-width: 860px;
     margin: 0 auto;
     padding: 2.5rem 1.5rem 5rem;
     color: var(--color-ink);
+    letter-spacing: -0.015em;
+    word-break: keep-all;
   }
 
   .portfolio-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 3rem;
+    gap: 4rem;
   }
 
   /* Top Minimal Navigation */
@@ -538,56 +647,195 @@ const projects: ProjectSpec[] = [
     background: var(--color-paper-soft);
   }
 
+  /* Hero KPIs Grid - Clean Open Stat Layout */
+  .hero-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-line);
+  }
+
+  .hero-kpi-card {
+    background: transparent;
+    border: none;
+    border-top: 2px solid var(--color-line);
+    border-radius: 0;
+    padding: 0.5rem 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 0.2rem;
+    transition: border-color 140ms ease;
+  }
+
+  .hero-kpi-card:hover {
+    border-top-color: var(--color-blue);
+  }
+
+  .hero-kpi-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .hero-kpi-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+  }
+
+  .hero-kpi-sub {
+    font-size: 0.72rem;
+    color: var(--color-blue);
+    line-height: 1.35;
+  }
+
+  /* 3-Tier Tech Stack Section - Open Architecture Guide */
+  .portfolio-tech-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .tech-tier-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2.25rem;
+  }
+
+  .tech-tier-card {
+    background: transparent;
+    border: none;
+    border-left: 2.5px solid var(--color-line);
+    border-radius: 0;
+    padding: 0.35rem 0 0.35rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    transition: border-color 140ms ease;
+  }
+
+  .tech-tier-card:hover {
+    border-left-color: var(--color-blue);
+  }
+
+  .tech-tier-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.1rem;
+  }
+
+  .tech-tier-badge {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--color-blue);
+    background: color-mix(in srgb, var(--color-blue) 10%, transparent);
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .tech-tier-role {
+    font-size: 0.84rem;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .tech-tier-stacks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .tech-tier-proof {
+    font-size: 0.88rem;
+    line-height: 1.75;
+    color: var(--color-ink-soft);
+    margin: 0;
+  }
+
+  .tech-tier-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--color-line);
+  }
+
+  .tech-tier-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--color-blue);
+    text-decoration: none;
+    transition: opacity 140ms ease;
+  }
+
+  .tech-tier-link:hover {
+    text-decoration: underline;
+    opacity: 0.85;
+  }
+
   /* Projects Section */
   .portfolio-projects {
     display: flex;
     flex-direction: column;
-    gap: 1.75rem;
+    gap: 3.5rem;
   }
 
   .projects-section-head {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--color-line-strong);
+    padding-bottom: 0.85rem;
+    border-bottom: 2px solid var(--color-ink);
   }
 
   .projects-section-title {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 800;
     letter-spacing: -0.01em;
     color: var(--color-ink);
   }
 
   .projects-section-count {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: var(--color-faint);
+    color: var(--color-muted);
   }
 
   .projects-list {
     display: flex;
     flex-direction: column;
-    gap: 2.25rem;
+    gap: 5rem;
   }
 
-  /* Project Card */
+  /* Project Section: Complete Open Architecture (No Outer Box) */
   .project-card {
-    background: var(--color-paper-raised);
-    border: 1px solid var(--color-line);
-    border-radius: 14px;
-    padding: 1.75rem;
-    box-shadow: var(--color-card-shadow);
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    gap: 1.75rem;
   }
 
   .project-card:hover {
-    border-color: var(--color-line-strong);
-    box-shadow: var(--color-card-shadow-hover);
+    border-color: transparent;
+    box-shadow: none;
   }
 
   .project-card__header {
@@ -595,6 +843,8 @@ const projects: ProjectSpec[] = [
     align-items: flex-start;
     justify-content: space-between;
     gap: 1.25rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--color-line);
   }
 
   .project-card__title-group {
@@ -628,7 +878,7 @@ const projects: ProjectSpec[] = [
   }
 
   .project-card__name {
-    font-size: 1.4rem;
+    font-size: 1.45rem;
     font-weight: 800;
     color: var(--color-ink);
     line-height: 1.25;
@@ -637,7 +887,7 @@ const projects: ProjectSpec[] = [
   .project-card__subtitle {
     font-size: 0.92rem;
     color: var(--color-muted);
-    line-height: 1.4;
+    line-height: 1.45;
   }
 
   .project-card__links {
@@ -651,17 +901,17 @@ const projects: ProjectSpec[] = [
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.4rem 0.75rem;
-    font-size: 0.78rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.76rem;
     font-weight: 600;
-    border-radius: 8px;
+    border-radius: 6px;
     text-decoration: none;
     transition: all 140ms ease;
     white-space: nowrap;
   }
 
   .project-link-button--github {
-    background: var(--color-paper-soft);
+    background: transparent;
     color: var(--color-ink-soft);
     border: 1px solid var(--color-line);
   }
@@ -672,53 +922,475 @@ const projects: ProjectSpec[] = [
   }
 
   .project-link-button--blog {
-    background: color-mix(in srgb, var(--color-blue) 12%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 10%, transparent);
     color: var(--color-blue);
-    border: 1px solid color-mix(in srgb, var(--color-blue) 30%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-blue) 25%, transparent);
   }
 
   .project-link-button--blog:hover {
-    background: color-mix(in srgb, var(--color-blue) 20%, transparent);
+    background: color-mix(in srgb, var(--color-blue) 18%, transparent);
   }
 
   .project-card__summary {
-    padding: 0.75rem 0.95rem;
-    background: var(--color-paper-soft);
-    border-radius: 8px;
-    border-left: 3px solid var(--color-blue);
+    padding: 0.25rem 0 0.25rem 0.85rem;
+    background: transparent;
+    border-radius: 0;
+    border-left: 2.5px solid var(--color-blue);
   }
 
   .project-card__summary p {
-    font-size: 0.88rem;
-    color: var(--color-ink);
-    line-height: 1.5;
+    font-size: 0.9rem;
+    color: var(--color-ink-soft);
+    line-height: 1.75;
     margin: 0;
   }
 
-  /* 3-Section Grid */
-  .project-spec-grid {
+  /* Project KPI Grid - Open Stat Line Layout */
+  .project-kpi-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.9rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    padding: 0.5rem 0 1.25rem;
+    margin-bottom: 0.5rem;
   }
 
-  .project-spec-block {
+  .project-kpi-card {
+    background: transparent;
+    border: none;
+    border-top: 2px solid var(--color-line);
+    border-radius: 0;
+    padding: 0.5rem 0 0;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    align-items: flex-start;
+    text-align: left;
+    gap: 0.15rem;
+    transition: border-color 140ms ease;
   }
 
-  .project-spec-label {
+  .project-kpi-card:hover {
+    border-top-color: var(--color-blue);
+  }
+
+  .project-kpi-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-muted);
+  }
+
+  .project-kpi-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--color-ink);
+  }
+
+  .project-kpi-sub {
+    font-size: 0.72rem;
+    color: var(--color-blue);
+    line-height: 1.35;
+  }
+
+  /* Architecture Viewer - Minimal & Clean Frame */
+  .arch-viewer {
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--color-paper-soft);
+  }
+
+  .arch-toolbar {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.82rem;
+    justify-content: space-between;
+    padding: 0.45rem 0.85rem;
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-paper);
+  }
+
+  .mono-label {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.7rem;
     font-weight: 700;
+    color: var(--color-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .zoom-trigger {
+    background: transparent;
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+
+  .zoom-trigger:hover {
+    border-color: var(--color-blue);
+    color: var(--color-blue);
+  }
+
+  .arch-canvas {
+    padding: 1.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--color-paper-soft);
+  }
+
+  .arch-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+  }
+
+  .arch-dark { display: none; }
+  :global(html[data-theme="dark"]) .arch-light,
+  :global(html.dark) .arch-light { display: none; }
+  :global(html[data-theme="dark"]) .arch-dark,
+  :global(html.dark) .arch-dark { display: block; }
+
+  /* Problem Solving & Optimization Section */
+  .troubleshooting-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Quick Jump Anchor Chips - Open Underline Bar */
+  .troubleshooting-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    padding: 0.4rem 0 0.75rem;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--color-line);
+    border-radius: 0;
+  }
+
+  .troubleshooting-nav__label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--color-muted);
+  }
+
+  .troubleshooting-nav__chips {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+
+  .troubleshooting-nav__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--color-ink-soft);
+    background: transparent;
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 140ms ease;
+  }
+
+  .troubleshooting-nav__chip:hover {
+    color: var(--color-blue);
+    border-color: var(--color-blue);
+    background: color-mix(in srgb, var(--color-blue) 8%, transparent);
+  }
+
+  .chip-num {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-blue);
+  }
+
+  /* Continuous Clean Task Sections - Distinct Breathing Room Between Tasks */
+  .troubleshooting-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3.75rem;
+  }
+
+  .troubleshooting-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding-top: 2.25rem;
+    border: none;
+    border-top: 1px solid var(--color-line);
+    background: transparent;
+    scroll-margin-top: 2rem;
+  }
+
+  .troubleshooting-card:first-child {
+    border-top: none;
+    padding-top: 0.25rem;
+  }
+
+  .troubleshooting-card__header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+  }
+
+  .troubleshooting-card__badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-blue);
+    background: color-mix(in srgb, var(--color-blue) 10%, transparent);
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .troubleshooting-card__title {
+    font-size: 1.05rem;
+    font-weight: 800;
     color: var(--color-ink);
-    letter-spacing: -0.01em;
+    line-height: 1.35;
     margin: 0;
   }
 
+  /* Callout: Complete Box Removal -> Minimal Open Indicator Structure */
+  .callout-problem,
+  .callout-solution {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0.25rem 0 0.25rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .callout-problem {
+    border-left: 2.5px solid #e53e3e;
+  }
+
+  .callout-solution {
+    border-left: 2.5px solid #38a169;
+    margin-top: 0.75rem;
+  }
+
+  :global(html[data-theme="dark"]) .callout-problem,
+  :global(html.dark) .callout-problem {
+    background: transparent;
+    border-color: transparent;
+    border-left: 2px solid rgba(251, 113, 133, 0.7);
+  }
+
+  :global(html[data-theme="dark"]) .callout-solution,
+  :global(html.dark) .callout-solution {
+    background: transparent;
+    border-color: transparent;
+    border-left: 2px solid rgba(52, 211, 153, 0.7);
+  }
+
+  .callout-badge {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0;
+    background: transparent !important;
+    width: fit-content;
+  }
+
+  .callout-badge--problem {
+    color: #e53e3e;
+  }
+
+  .callout-badge--solution {
+    color: #2f855a;
+  }
+
+  :global(html[data-theme="dark"]) .callout-badge--problem,
+  :global(html.dark) .callout-badge--problem {
+    color: #fda4af;
+  }
+
+  :global(html[data-theme="dark"]) .callout-badge--solution,
+  :global(html.dark) .callout-badge--solution {
+    color: #6ee7b7;
+  }
+
+  /* Unified Clean Bullet Structure: Consistent & Calm */
+  .callout-problem p {
+    position: relative;
+    padding-left: 1rem;
+    font-size: 0.88rem;
+    line-height: 1.75;
+    margin: 0;
+    color: var(--color-ink-soft);
+  }
+
+  .callout-problem p::before {
+    content: "•";
+    position: absolute;
+    left: 0.1rem;
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+
+  .callout-solution ul {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+    font-size: 0.88rem;
+    line-height: 1.75;
+    color: var(--color-ink-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .callout-solution li {
+    position: relative;
+    padding-left: 1rem;
+  }
+
+  .callout-solution li::before {
+    content: "•";
+    position: absolute;
+    left: 0.1rem;
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+
+  /* Comparison Table - Open Minimal Table (No Outer Enclosure Box) */
+  .comparison-table-wrap {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+    overflow-x: auto;
+  }
+
+  .comparison-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    border-top: 1px solid var(--color-line);
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .comparison-table th,
+  .comparison-table td {
+    padding: 0.75rem 0.85rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-line);
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+
+  .comparison-table th:first-child,
+  .comparison-table td:first-child {
+    width: 25%;
+  }
+
+  .comparison-table th:nth-child(2),
+  .comparison-table td:nth-child(2),
+  .comparison-table th:nth-child(3),
+  .comparison-table td:nth-child(3) {
+    width: 37.5%;
+  }
+
+  .comparison-table th {
+    background: transparent;
+    font-weight: 700;
+    color: var(--color-ink);
+    border-bottom: 1.5px solid var(--color-line);
+  }
+
+  .col-before {
+    color: var(--color-muted);
+  }
+
+  .col-after {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  /* Architecture Lightbox Modal */
+  .arch-modal {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    width: 90vw;
+    max-width: 1000px;
+    max-height: 90vw;
+    background: var(--color-paper);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    margin: auto;
+  }
+
+  .arch-modal[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .arch-modal::backdrop {
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+  }
+
+  .arch-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-paper-soft);
+  }
+
+  .arch-modal-close {
+    background: transparent;
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--color-muted);
+  }
+
+  .arch-modal-close:hover {
+    color: var(--color-ink);
+    border-color: var(--color-line-strong);
+  }
+
+  .arch-modal-body {
+    padding: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+  }
+
+  .arch-modal-body img {
+    max-width: 100%;
+    max-height: 75vh;
+    object-fit: contain;
+  }
+
+  /* Spec Index Badge */
   .spec-index {
     display: inline-flex;
     align-items: center;
@@ -732,15 +1404,6 @@ const projects: ProjectSpec[] = [
     border-radius: 4px;
     padding: 0.1rem 0.35rem;
     line-height: 1.2;
-  }
-
-  .project-spec-desc {
-    font-size: 0.86rem;
-    line-height: 1.55;
-    color: var(--color-ink-soft);
-    margin: 0;
-    padding-left: 1.6rem;
-    word-break: keep-all;
   }
 
   /* Tech Stack Footer */
@@ -788,7 +1451,6 @@ const projects: ProjectSpec[] = [
     gap: 2.25rem;
   }
 
-  /* Governance Card & Accordion Styling */
   .governance-card {
     position: relative;
   }
@@ -838,6 +1500,38 @@ const projects: ProjectSpec[] = [
     padding-top: 0.25rem;
   }
 
+  .project-spec-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+
+  .project-spec-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .project-spec-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+
+  .project-spec-desc {
+    font-size: 0.86rem;
+    line-height: 1.68;
+    color: var(--color-ink-soft);
+    margin: 0;
+    padding-left: 1.6rem;
+    word-break: keep-all;
+  }
+
   /* Footer */
   .portfolio-footer {
     text-align: center;
@@ -852,8 +1546,13 @@ const projects: ProjectSpec[] = [
   }
 
   @media (max-width: 640px) {
-    .project-card__header,
-    .governance-item__header {
+    .hero-kpi-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .project-kpi-grid {
+      grid-template-columns: 1fr;
+    }
+    .project-card__header {
       flex-direction: column;
     }
     .portfolio-hero__name {
