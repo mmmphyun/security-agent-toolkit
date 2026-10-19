@@ -142,11 +142,19 @@ def fetch_day_lecture_note(course_id: str, day_id: str, fetch_sub_lessons: bool 
     if not CURRICULUM_HUB_PAGE_ID:
         return "[알림] CURRICULUM_HUB_PAGE_ID 환경변수가 설정되지 않아 로컬 코드 컨텍스트만 사용합니다."
 
-    alias_map = {
-        "mini-watch": "anomaly_detection",
-        "mini_watch": "anomaly_detection",
-    }
-    course_id = alias_map.get(course_id, course_id)
+    # mini-watch 4-5과목 통합 프로젝트 분기 처리
+    if course_id in ("mini-watch", "mini_watch"):
+        day_match = re.search(r"\d+", day_id)
+        if day_match:
+            day_num = int(day_match.group())
+            if day_num <= 5:
+                course_id = "anomaly_detection"
+                day_id = f"day{day_num:02d}"
+            else:
+                course_id = "soar_response"
+                day_id = f"day{day_num - 5:02d}"
+        else:
+            course_id = "anomaly_detection"
 
     catalog = build_curriculum_catalog()
     course_info = catalog.get(course_id)
