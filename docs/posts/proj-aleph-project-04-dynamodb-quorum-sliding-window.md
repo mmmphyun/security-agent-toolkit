@@ -37,14 +37,18 @@ sequenceDiagram
     Target->>CWLogs: CloudWatch Agent 로그 버퍼 스트리밍
 
     CWLogs->>Worker: 배치 1 전달 (3건 실패 이벤트)
-    Worker->>DynamoDB: record_failure (시간 버킷 원자적 Upsert, W=2)
-    Worker->>DynamoDB: check_threat (3-버킷 ConsistentRead=True, R=2)
+    Worker->>DynamoDB: record_failure (시간 버킷 원자적 Upsert)
+    Note over DynamoDB: W=2 쓰기 커밋 (Leader + Follower 1 성공 시 200 OK)<br/>Follower 2 비동기 복제 진행 중
+    Worker->>DynamoDB: check_threat (ConsistentRead=True, R=2)
+    Note over DynamoDB: R=2 읽기: 비둘기집 원리에 따라 최신 노드 반드시 포함
     Note over Worker: 임계치 미달 (3 < 5) 판정, 조치 보류
 
     CWLogs->>Worker: 배치 2 전달 (2건 실패 이벤트)
-    Worker->>DynamoDB: record_failure (시간 버킷 원자적 Upsert, W=2)
-    Worker->>DynamoDB: check_threat (3-버킷 ConsistentRead=True, R=2)
-    Note over Worker: 쿼럼 읽기 합산 5건 도달 (SSH_BRUTE_FORCE 탐지)
+    Worker->>DynamoDB: record_failure (시간 버킷 원자적 Upsert)
+    Note over DynamoDB: W=2 쓰기 커밋 (누적 5건 달성)
+    Worker->>DynamoDB: check_threat (ConsistentRead=True, R=2)
+    Note over DynamoDB: LSN 대조로 1:1 동점 해소 -> 최신 버전(5건) 확정 반환
+    Note over Worker: 누적 5건 도달 확인 (SSH_BRUTE_FORCE 탐지)
 
     Worker->>Nitro: ModifyInstanceAttribute (CloudShield-Quarantine-SG)
     Worker->>DynamoDB: mark_quarantined (현재 버킷 멱등성 마킹)
@@ -55,11 +59,11 @@ sequenceDiagram
 
 ## 3. 기존 체계의 한계와 도전 과제: 무상태 룰 엔진의 배치 분할 누락과 분산 동시성 경합
 
-CloudWatch Logs Subscription Filter는 로그 볼륨(최대 1MB) 및 버퍼 전송 주기(최대 5초) 정책에 따라 동일 IP의 무차별 대입 공격 로그를 여러 개의 Lambda 호출 배치로 분할 전달한다. 단일 함수의 인-메모리 상태만 평가하는 기존 무상태 룰 엔진은 5회 임계치 공격이 3건과 2건으로 나뉘어 전달되면 두 호출 모두 임계치 미달로 판단하여 공격을 전혀 탐지하지 못하는 치명적 사각지대를 노출했다. Firecracker MicroVM 컨테이너는 요청마다 독립된 메모리 주소 공간을 사용하므로, 복수의 인스턴스가 공유할 수 있는 외부 분산 영속 계층의 도입이 불가피했다.
+CloudWatch Logs Subscription Filter는 로그 볼륨(최대 1MB) 및 버퍼 전송 주기(최대 5초) 정책에 따라 동일 IP의 무차별 대입 공격 로그를 여러 개의 Lambda 호출 배치로 분할 전달한다. 단일 함수의 인-메모리 상태만 평가하는 기존 무상태 룰 엔진은 5회 임계치 공격이 3건과 2건으로 나뉘어 전달되면 두 호출 모두 임계치 미달로 판단하여 탐지 누락이 발생하는 구조적 한계를 안고 있었다. Firecracker MicroVM 컨테이너는 요청마다 독립된 메모리 주소 공간을 사용하므로, 복수의 인스턴스가 공유할 수 있는 외부 분산 영속 계층의 도입이 불가피했다.
 
-더욱이 패킷 분석을 통해 측정된 SSH 무차별 대입 공격의 네트워크 세션 수명은 176.109ms에 불과했다. 공격자가 3-Way Handshake를 맺고 패스워드 인증 실패 후 4-Way FIN으로 연결을 종료하기까지 걸리는 물리적 시간이 수백 밀리초에 불과한 반면, CloudWatch Agent의 버퍼링 수집과 구독 필터 전달, Lambda 기동에 소요되는 비동기 파이프라인 지연은 수 초에 달했다. 로그가 분석 엔진에 도달한 시점에 공격 세션은 이미 커널 상에서 닫혀 있었으므로, 인-세션 실시간 패킷 인터셉트(TCP RST 주입 등)는 물리적으로 성립할 수 없었다.
+패킷 분석을 통해 측정된 SSH 무차별 대입 공격의 네트워크 세션 수명은 176.109ms에 불과했다. 공격자가 3-Way Handshake를 맺고 패스워드 인증 실패 후 4-Way FIN으로 연결을 종료하기까지 걸리는 물리적 시간이 수백 밀리초에 불과한 반면, CloudWatch Agent의 버퍼링 수집과 구독 필터 전달, Lambda 기동에 소요되는 비동기 파이프라인 지연은 수 초에 달했다. 로그가 분석 엔진에 도달한 시점에 공격 세션은 이미 커널 상에서 닫혀 있었으므로, 인-세션 실시간 패킷 인터셉트(TCP RST 주입 등)는 물리적으로 성립할 수 없었다.
 
-상태를 보존하기 위해 도입을 검토했던 단일 파티션 키 기반 낙관적 락(OCC) 모델 역시 한계를 드러냈다. 단일 키(`BF#<ip>#<user>`)에 5분 윈도우 만료 여부를 판별하는 조건부 쓰기(`ConditionExpression="expire_at >= :now"`)를 적용하자, 밀리초 단위로 동시 인입되는 Lambda 인스턴스 간에 `ConditionalCheckFailedException` 경합이 발생했다. 최대 3회의 CAS 재시도 루프가 소진되면서 일부 쓰기가 유실되는 갱신 분실과 테일 레이턴시 스파이크가 발생하여 10초 관통 SLA를 위협했다.
+상태를 보존하기 위해 도입을 검토했던 단일 파티션 키 기반 낙관적 락(OCC) 모델 역시 한계를 드러냈다. 단일 키(`BF#<ip>#<user>`)에 5분 윈도우 만료 여부를 판별하는 조건부 쓰기(`ConditionExpression="expire_at >= :now"`)를 적용하자, 밀리초 단위로 동시 인입되는 Lambda 인스턴스 간에 `ConditionalCheckFailedException` 경합이 발생했다. 최대 3회의 CAS 재시도 루프가 소진되면서 일부 쓰기가 유실되는 갱신 분실이 발생했고, 지연시간이 급증하여 10초 관통 목표를 맞추기 어려웠다.
 
 ## 4. 엔지니어링 의사결정 및 리팩터링
 
@@ -67,7 +71,7 @@ CloudWatch Logs Subscription Filter는 로그 볼륨(최대 1MB) 및 버퍼 전�
 
 네트워크 패킷 캡처 실측 결과, 공격자의 SSH 3-Way Handshake부터 인증 실패 후 4-Way FIN 종료까지 소요된 총 세션 수명은 176.109ms였다. CloudShield 파이프라인의 로그 수집 및 Lambda 기동 지연(약 5-10초)을 고려할 때, 진행 중인 세션 내부에서 패킷을 직접 드롭하거나 TCP RST 패킷을 주입하는 인-세션 방어는 물리적으로 불가능했다.
 
-공격자가 초당 수십 회의 고속 스크립트로 공격을 퍼붓는다면, 5회 도달 후 L4 격리가 완료되기 전인 수 초의 지연시간 동안 6-8번째 세션 역시 일시적으로 OS 커널에 도달할 수 있다. 본 아키텍처는 1회성 접속을 즉각 인터셉트하는 비현실적 이상론을 배제하고, 분할 인입되는 배치를 수 초 내에 정확히 영속 집계하여 수만 번 이어질 후속 무차별 대입의 진입로를 원천 봉쇄하는 사후 수렴 격리 모델을 확립했다.
+공격자가 초당 수십 회의 고속 스크립트로 공격을 퍼붓는다면, 5회 도달 후 L4 격리가 완료되기 전인 수 초의 지연시간 동안 6-8번째 세션 역시 일시적으로 OS 커널에 도달할 수 있다. 본 아키텍처는 모든 연결을 동기식으로 즉각 차단하는 완전무결한 가정을 배제하고, 분할 인입되는 배치를 수 초 내에 정확히 영속 집계하여 수만 번 이어질 후속 무차별 대입의 진입로를 원천 봉쇄하는 사후 수렴 격리 모델을 확립했다.
 
 5회 도달 즉시 타깃 EC2의 보안 그룹을 전면 차단 SG(`CloudShield-Quarantine-SG`)로 원자적 교체하면, AWS Nitro 하이퍼바이저의 vSwitch 레벨에서 6번째 이후의 모든 TCP SYN 패킷이 즉각 Drop된다. 패킷이 타깃 OS 커널(TCP 스택 및 sshd)에 도달하지 않으므로 `/var/log/auth.log` I/O 생성이 중단되고, 후속 CloudWatch 로그 수집 및 Lambda 기동 비용이 0으로 수렴하여 인프라 비용 폭탄을 방어하는 FinOps DoS 선순환 격리를 달성했다.
 
@@ -99,7 +103,7 @@ res_bf = self._table.update_item(
 )
 ```
 
-파티션 키에 `epoch // 300` 버킷을 내포시킴으로써 쓰기 경로의 동시성 락을 완전히 배제하고 충돌률 0%(재시도 0회)를 달성했다. 그 대가로 300초 슬라이딩 윈도우의 정확한 판별 책임을 쓰기 시점이 아닌 조회 시점(`check_threat`)의 3-버킷 스캔 및 타임스탬프 필터링으로 이관하는 아키텍처 트레이드오프를 단행했다.
+파티션 키에 `epoch // 300` 버킷을 내포시킴으로써 쓰기 경로의 동시성 락을 완전히 배제하고 충돌률 0%(재시도 0회)를 달성했다. 그 대가로 300초 슬라이딩 윈도우의 정확한 판별 책임을 쓰기 시점이 아닌 조회 시점(`check_threat`)의 버킷 스캔 및 타임스탬프 필터링으로 이관했다. 이때 비동기 큐의 지연 인입으로 인해 현재 버킷뿐 아니라 전후 버킷까지 함께 살피는 3-버킷 스캔 구조가 필연적으로 뒤따르게 되었다.
 
 ### 4.3. 분산 복제 쿼럼(R + W > N)과 Paxos LSN 기반 1:1 동점 해소 메커니즘
 
@@ -107,14 +111,9 @@ DynamoDB는 3개 가용영역($N=3$)에 복제 노드를 유지하며, Paxos Lea
 
 `check_threat` 조회 시 최종 일관성(`ConsistentRead=False`, $R=1$)을 사용할 경우, 복제가 지연된 3번째 노드를 읽어 방금 5회에 도달한 쓰기 상태를 놓치고 4회로 판정하는 Stale Read 결함이 발생했다. 이에 따라 읽기 시 2배의 RCU 비용을 감수하고 `ConsistentRead=True`($R=2$)를 강제하여 정족수 부등식 $W(2) + R(2) = 4 > N(3)$을 충족시켰다. 비둘기집 원리에 의해 읽기 후보 노드 2개 중 최소 1개는 최신 쓰기가 반영된 노드임이 수학적으로 보장된다.
 
-```text
-[정족수 쿼럼과 논리적 시계의 역할 분담]
-- 정족수 쿼럼 (R + W > N, W=2, R=2):
-  읽기 대상 노드 2개 중 최소 1개가 최신 쓰기 노드임을 물리적으로 보장하는 '그물망'
-- Paxos LSN (Log Sequence Number):
-  결과 집합이 [count=5, count=4]로 1:1 동점일 때 다수결 투표가 불가능하므로,
-  Leader가 부여한 단조 증가 트랜잭션 번호(LSN)를 대조해 최신 데이터를 선별하는 '판별 기준'
-```
+> **정족수 쿼럼과 논리적 시계의 역할 분담**
+> - **정족수 쿼럼 ($R + W > N$, $W=2, R=2$):** 읽기 대상 노드 2개 중 최소 1개가 최신 쓰기 노드임을 물리적으로 보장하는 '그물망' 역할을 담당한다.
+> - **Paxos LSN (Log Sequence Number):** 결과 집합이 `[count=5, count=4]`로 1:1 동점일 때 값 자체의 다수결 투표가 불가능하므로, Leader가 부여한 단조 증가 트랜잭션 번호(LSN)를 대조해 최신 데이터를 선별하는 '판별 기준' 역할을 담당한다.
 
 읽어온 노드 응답이 최신 노드(`count=5`)와 지연 노드(`count=4`)로 나뉠 때 결과는 `[5, 4]`로 1:1 동점이 되어 값 자체의 다수결 투표가 불가능하다. 정족수 쿼럼은 최신 노드를 읽기 후보군 안에 물리적으로 가두는 그물망 역할을 수행하고, 스토리지 엔진 내부의 LSN(Log Sequence Number)과 커밋 타임스탬프가 최신 데이터를 선별하는 판별 기준 역할을 분담하여 Stale Read를 원천 차단했다.
 
@@ -122,9 +121,9 @@ DynamoDB는 3개 가용영역($N=3$)에 복제 노드를 유지하며, Paxos Lea
 
 CloudWatch Logs 구독 필터는 단일 직렬 큐가 아닌 분산 샤딩 스트림이다. 로그 볼륨에 따라 복수의 Lambda Worker 컨테이너가 병렬 기동되며, 컨테이너 콜드 스타트 지연으로 인해 $t=299$ 이벤트를 담은 배치가 $t=450$ 이벤트를 담은 후속 배치보다 늦게 DynamoDB에 도달하는 순서 역전 현상이 발생했다.
 
-단일 정수 카운터 시절에는 덧셈 교환법칙($A+B=B+A$)으로 순서 역전이 무해하다고 판단했으나, 시간 버킷 파티셔닝 환경에서는 버킷 ID 자체가 분할($t=450 \rightarrow$ 버킷 1, $t=299 \rightarrow$ 버킷 0)되므로 교환법칙 가설이 무너졌다. 지연 인입된 Worker가 $t=299$ 처리 시 현재(0)와 직전(-1) 버킷만 조회하면 이미 커밋된 미래 버킷(1)의 데이터를 놓쳐 탐지 누락이 발생했다.
+단일 정수 카운터 시절에는 덧셈 교환법칙($A+B=B+A$)으로 순서 역전이 무해하다고 판단했으나, 시간 버킷 파티셔닝 환경에서는 버킷 ID 자체가 분할($t=450 \rightarrow$ 버킷 1, $t=299 \rightarrow$ 버킷 0)되므로 교환법칙 가설이 무너졌다. 지연 인입된 Worker가 $t=299$ 처리 시 현재(0)와 직전(-1) 버킷만 조회하면 이미 커밋된 미래 버킷 1의 데이터를 놓쳐 탐지 누락이 발생했다.
 
-이를 해결하기 위해 직전(`curr - 1`), 현재(`curr`), 직후(`curr + 1`) 3개 버킷을 일괄 조회하여 지연 인입 시에도 선행 커밋된 미래 버킷 데이터를 포괄하도록 설계했다. 또한 단순 하한선($t \ge now - 300$)만 둘 경우 $(t=1) \rightarrow (t=599) \rightarrow (t=301)$ 순으로 인입될 때 598초 차이나는 트래픽이 합산되는 오탐을 방지하기 위해 기준 시각 $ref$를 상한으로 하는 양방향 닫힌 구간($[ref - 300, ref]$) 필터링을 구축했다.
+이를 해결하기 위해 직전(`curr - 1`), 현재(`curr`), 직후(`curr + 1`) 3개 버킷을 일괄 조회하여 지연 인입 시에도 선행 커밋된 미래 버킷 데이터를 포괄하도록 설계했다. 또한 단순 하한선($t \ge now - 300$)만 둘 경우 $(t = 1) \rightarrow (t = 599) \rightarrow (t = 301)$ 순으로 인입될 때 598초 차이나는 트래픽이 합산되는 오탐을 방지하기 위해 기준 시각 $ref$를 상한으로 하는 양방향 닫힌 구간($[ref - 300, ref]$) 필터링을 구축했다.
 
 ```python
 # src/remediation/auth_window.py
@@ -159,7 +158,7 @@ Moto 가상 AWS 환경을 기반으로 분할 배치 누적, 동시성 경합, �
 | `test_concurrent_record_failure_race_condition` | `ThreadPoolExecutor` 멀티스레드 동시 인입 시 원자적 카운트 보존 및 충돌 0건 | 통과 |
 | `test_check_threat_uses_consistent_read` | `check_threat` 내부의 모든 버킷 조회가 `ConsistentRead=True`를 강제함을 검증 | 통과 |
 | `test_out_of_order_batches_ssh_brute_force_separate_instances` | $t=450$ 선행 후 $t=299$ 지연 인입 시 3-버킷 스캔을 통한 분산 순서 역전 탐지 무결성 | 통과 |
-| `test_out_of_order_upper_bound_filter_prevents_false_positive` | $(t=1) \rightarrow (t=599) \rightarrow (t=301)$ 인입 시 $t \le now$ 상한선에 의한 598초 오탐 방지 | 통과 |
+| `test_out_of_order_upper_bound_filter_prevents_false_positive` | $(t = 1) \rightarrow (t = 599) \rightarrow (t = 301)$ 인입 시 $t \le now$ 상한선에 의한 598초 오탐 방지 | 통과 |
 | `test_remediation_idempotency_suppression` | 이미 격리 완료된 타깃에 대한 후속 실패 인입 시 중복 격리 API 호출 차단 | 통과 |
 
 단일 게이트 스크립트 실행 결과, 전체 291개 단위 및 계약 테스트가 통과했다.
