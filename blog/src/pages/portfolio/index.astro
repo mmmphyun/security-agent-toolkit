@@ -3,9 +3,24 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { SITE } from "../../config";
 import { withBase } from "../../lib/site-path";
 import * as content from "./_portfolio_content.md";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
 const pageTitle = `Portfolio | 한승윤 (Seungyun Han)`;
-const pageDescription = "클라우드 인프라·운영 자동화 엔지니어를 준비하며, 지연 시간과 보안 제약 속에서 시스템 병목을 계측하고 자동화와 방어적 설계를 통해 운영 안정성을 확보하는 엔지니어 한승윤의 포트폴리오";
+
+function formatInline(text: string): string {
+  if (!text) return "";
+  let res = text.replace(/\$([^\$]+)\$/g, (_, math) => {
+    try {
+      return katex.renderToString(math, { throwOnError: false });
+    } catch {
+      return `$${math}$`;
+    }
+  });
+  res = res.replace(/`([^`]+)`/g, '<code class="code-inline">$1</code>');
+  return res;
+}
+const pageDescription = "클라우드 인프라 및 보안 자동화 및 백엔드 엔지니어를 준비하며, 지연 시간과 물리적 리소스 제약 속에서 데이터 무결성 및 네트워크 및 보안 기본기를 지키고 병목을 계측해 해결하는 엔지니어 한승윤의 포트폴리오";
 
 interface KpiCard {
   label: string;
@@ -73,7 +88,7 @@ const governanceCases = content.frontmatter.governanceCases;
       <div class="portfolio-hero__header">
         <h1 class="portfolio-hero__name">한승윤 <span class="portfolio-hero__en">Seungyun Han</span></h1>
         <p class="portfolio-hero__identity">
-          클라우드 인프라·운영 자동화 엔지니어를 준비하고 있습니다. 지연 시간과 보안 제약 속에서 시스템 병목을 계측하고, 자동화와 방어적 설계를 통해 운영 안정성을 확보합니다.
+          클라우드 인프라 및 보안 자동화 및 백엔드 엔지니어를 준비하고 있습니다. 주어진 물리적 리소스 제약 속에서 입출력 계약, DB 정합성, 웹 보안 기본기를 지키고 시스템 병목을 계측해 해결합니다.
         </p>
       </div>
 
@@ -265,12 +280,12 @@ const governanceCases = content.frontmatter.governanceCases;
                     </div>
                     <div class="callout-problem">
                       <span class="callout-badge callout-badge--problem">문제 및 제약 조건</span>
-                      <p>{t.problem}</p>
+                      <p set:html={formatInline(t.problem)}></p>
                     </div>
                     <div class="callout-solution">
                       <span class="callout-badge callout-badge--solution">구현 및 해결 방안</span>
                       <ul>
-                        {t.solution.map((line) => <li>{line}</li>)}
+                        {t.solution.map((line) => <li set:html={formatInline(line)}></li>)}
                       </ul>
                     </div>
                     <div class="comparison-table-wrap">
@@ -284,8 +299,8 @@ const governanceCases = content.frontmatter.governanceCases;
                           {t.comparisonRows.map((row) => (
                             <tr>
                               <td><strong>{row[0]}</strong></td>
-                              <td class="col-before">{row[1]}</td>
-                              <td class="col-after">{row[2]}</td>
+                              <td class="col-before" set:html={formatInline(row[1])}></td>
+                              <td class="col-after" set:html={formatInline(row[2])}></td>
                             </tr>
                           ))}
                         </tbody>
@@ -325,12 +340,12 @@ const governanceCases = content.frontmatter.governanceCases;
           <header class="project-card__header">
             <div class="project-card__title-group">
               <div class="project-card__meta">
-                <span class="project-card__period">2026.08 - 현재</span>
+                <span class="project-card__period">2026.08 - 2026.11</span>
                 <span class="project-card__divider">/</span>
                 <span class="project-card__role">CloudShield 팀장 (협업 파이프라인 구축)</span>
               </div>
               <h3 class="project-card__name">계약 기반 병렬 개발 및 역할 분담 영역 격리</h3>
-              <p class="project-card__subtitle">모의 데이터 체인 및 화이트리스트 CI 하네스를 통한 4인 무충돌 병렬 개발</p>
+              <p class="project-card__subtitle">Pydantic v2 불변 계약 및 Git Pre-commit, GitHub Actions 291건 통합 게이트를 통한 4인 무충돌 병렬 개발</p>
             </div>
 
             <div class="project-card__links">
@@ -350,7 +365,7 @@ const governanceCases = content.frontmatter.governanceCases;
           </header>
 
           <div class="project-card__summary">
-            <p><strong>핵심 조치:</strong> Pydantic v2 계약 모델, 모의 데이터 체인, 디렉터리 화이트리스트 CI 검사기, 교차 계약 테스트</p>
+            <p><strong>핵심 조치:</strong> Pydantic v2 불변 계약 모델(7대 액션 어댑터), 모의 데이터 체인, 디렉터리 화이트리스트 CI 검사기, 교차 계약 5종 및 전체 291건 통합 테스트 게이트</p>
             <p style="margin-top: 0.3rem;"><strong>운영 성과:</strong> 이슈 #111(모의 데이터 단절 결함) 식별 후 교차 계약 하네스 구축(PR #112), 이후 모듈 연동 스키마 불일치 재발 0건 및 Git 병합 충돌 0건 달성</p>
           </div>
 
@@ -369,7 +384,7 @@ const governanceCases = content.frontmatter.governanceCases;
                     <span>배경 및 문제</span>
                   </h4>
                   <p class="project-spec-desc">
-                    수집 모듈이 미완성된 상태에서 후행 탐지·대응 모듈 개발이 블로킹되는 병목이 있었으며, 4인이 각자 도메인을 개발하는 과정에서 직무 간 Mock 데이터 체인의 인과관계 단절 및 룰-매퍼 간 매핑 결함(이슈 #111)이 발생했습니다.
+                    수집 모듈이 미완성된 상태에서 후행 탐지 및 대응 모듈 개발이 블로킹되는 병목이 있었으며, 4인이 각자 도메인을 개발하는 과정에서 직무 간 Mock 데이터 체인의 인과관계 단절 및 룰-매퍼 간 매핑 결함(이슈 #111)이 발생했습니다.
                   </p>
                 </section>
 
@@ -379,7 +394,7 @@ const governanceCases = content.frontmatter.governanceCases;
                     <span>엔지니어링 조치</span>
                   </h4>
                   <p class="project-spec-desc">
-                    Pydantic v2 코어 모델에 데이터 규격을 정의하고 모의 데이터 체인을 주입해 병렬 개발을 지원했습니다. 커밋 전 디렉터리 화이트리스트 검사기로 비인가 파일 수정을 차단하고, 코드 리뷰 중 식별된 모의 데이터 단절 결함을 해결하기 위해 수집·탐지·대응 전 구간 교차 계약 테스트 5종을 긴급 구축(PR #112)했습니다.
+                    Pydantic v2 코어 모델에 7대 대응 액션 규격을 정의하고 모의 데이터 체인을 주입해 병렬 개발을 지원했습니다. 커밋 전 디렉터리 화이트리스트 검사기로 비인가 파일 수정을 차단하고, 교차 계약 테스트 5종과 291건의 단위 및 계약 테스트 및 Terraform 네이티브 테스트를 GitHub Actions CI에 결합(PR #112)했습니다.
                   </p>
                 </section>
 
@@ -401,8 +416,8 @@ const governanceCases = content.frontmatter.governanceCases;
               <span class="tech-stack-badge">Pydantic v2</span>
               <span class="tech-stack-badge">Git Pre-commit</span>
               <span class="tech-stack-badge">GitHub Actions</span>
-              <span class="tech-stack-badge">pytest</span>
-              <span class="tech-stack-badge">Notion API</span>
+              <span class="tech-stack-badge">pytest (291 tests)</span>
+              <span class="tech-stack-badge">Terraform (.tftest.hcl)</span>
             </div>
           </footer>
         </article>
@@ -412,17 +427,17 @@ const governanceCases = content.frontmatter.governanceCases;
           <header class="project-card__header">
             <div class="project-card__title-group">
               <div class="project-card__meta">
-                <span class="project-card__period">2026.08 - 현재</span>
+                <span class="project-card__period">2026.08 - 2026.11</span>
                 <span class="project-card__divider">/</span>
                 <span class="project-card__role">1인 설계 및 파이프라인 운용</span>
               </div>
               <h3 class="project-card__name">기술 문서 배포 파이프라인</h3>
-              <p class="project-card__subtitle">실습 코드·로그 기반 초안 보조 및 AST/Frontmatter 검증 자동화</p>
+              <p class="project-card__subtitle">실습 코드 및 로그 기반 초안 보조 및 AST/Frontmatter 검증 자동화</p>
             </div>
           </header>
 
           <div class="project-card__summary">
-            <p><strong>핵심 조치:</strong> 실습 코드·로그 기반 초안 작성 보조, Frontmatter 검증, 엔지니어 최종 검수</p>
+            <p><strong>핵심 조치:</strong> 실습 코드 및 로그 기반 초안 작성 보조, Frontmatter 검증, 엔지니어 최종 검수</p>
             <p style="margin-top: 0.3rem;"><strong>운영 성과:</strong> 기술 분석 글 37편 발행: 빌드 타임 정적 검증으로 메타데이터 누락 및 라우팅 깨짐 사전 차단</p>
           </div>
 
@@ -1271,6 +1286,26 @@ const governanceCases = content.frontmatter.governanceCases;
   }
 
   /* Comparison Table - Open Minimal Table (No Outer Enclosure Box) */
+
+  :global(.code-inline) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.88em;
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+    background-color: rgba(125, 125, 125, 0.12);
+    border: 1px solid rgba(125, 125, 125, 0.2);
+    color: var(--color-ink, #1a202c);
+  }
+  :global(html[data-theme="dark"] .code-inline),
+  :global(html.dark .code-inline) {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+  }
+  :global(.katex) {
+    font-size: 1.05em;
+  }
+
   .comparison-table-wrap {
     border: none;
     border-radius: 0;
