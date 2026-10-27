@@ -89,7 +89,7 @@ projects:
         value: "36 - 121ms"
         sub: "3-AZ 정족수 쿼럼(R+W>N) 조회"
       - label: "5스레드 동시 경합"
-        value: "충돌 0건"
+        value: "충돌 배제"
         sub: "시간 버킷 1 RTT 원자적 Upsert"
       - label: "자동화 검증 게이트"
         value: "291개 테스트"
@@ -110,7 +110,7 @@ projects:
 
       - id: "task-b"
         topicLabel: "L4 EC2 원자적 격리"
-        title: "공유 보안 그룹 폭발 반경 통제 및 아웃바운드 0건 사전 정책 검증"
+        title: "공유 보안 그룹 폭발 반경 통제 및 비인가 규칙 부재 사전 정책 검증"
         problem: "공유 보안 그룹에서 침해 포트 규칙을 개별 회수(revoke)하면 동일 그룹을 쓰는 정상 인스턴스까지 통신이 끊기는 N:M 폭발 반경 위험이 있었습니다. 또한 AWS 보안 그룹 생성 시 기본 주입되는 아웃바운드 전체 허용(0.0.0.0/0) 규칙이나 사후 주입된 포트 규칙이 잔존할 경우 C2 서버 유출을 막지 못하는 함정이 존재했습니다."
         solution:
           - "인스턴스 단위로 보안 그룹 배열을 단일 트랜잭션 치환하는 modify_instance_attribute(Groups=[target_sg_id])를 채택해 타 정상 워크로드 트래픽 간섭을 배제했습니다."
@@ -118,7 +118,7 @@ projects:
         comparisonHeaders: ["비교 항목", "공유 보안 그룹 규칙 개별 삭제", "사전 정책 검증 + 격리 SG 원자적 교체 (채택)"]
         comparisonRows:
           - ["타 인스턴스 영향", "공유 SG 소속 정상 워크로드 연쇄 통신 단절", "침해 인스턴스 eth0만 핀포인트 고립 (폭발 반경 제어)"]
-          - ["아웃바운드 통제", "AWS 기본 아웃바운드 허용 규칙 잔존 위험", "인바운드 및 아웃바운드 규칙 0건 사전 검증 통과 시에만 교체"]
+          - ["아웃바운드 통제", "AWS 기본 아웃바운드 허용 규칙 잔존 위험", "인바운드 및 아웃바운드 규칙 공백(부재) 사전 검증 통과 시에만 교체"]
           - ["중복 호출 및 오염 방어", "반복 API 호출 및 사후 규칙 오염 미인지", "상태 기반 멱등 처리 및 규칙 오염 시 즉시 거부"]
 
       - id: "task-c"
@@ -140,7 +140,7 @@ projects:
         problem: "4인 병렬 개발 중 Mock 데이터 스키마 불일치로 모듈 간 이벤트 체인이 단절(이슈 #111)되었고 인프라 코드에서는 제로패딩 CIDR 별칭 입력 시 보안 그룹 검증을 우회할 위험이 있었습니다."
         solution:
           - "이슈 #111을 방어하기 위해 Pydantic V2 불변 데이터 모델(frozen=True)과 7대 액션 교차 계약 테스트 test_contracts.py, 비인가 경로 수정을 차단하는 verify_rnr_scope.py를 선제 구축했습니다."
-          - "인프라 영역은 6개 모듈(vpc, ec2, dynamodb, waf, lambda, quarantine_sg)로 격리 분리하고 mock_provider 기반 .tftest.hcl을 도입해 제로패딩 CIDR 별칭 거부와 격리 SG 인, 아웃 0건 불변식을 플랜 단계에서 자동 검증했습니다."
+          - "인프라 영역은 6개 모듈(vpc, ec2, dynamodb, waf, lambda, quarantine_sg)로 격리 분리하고 mock_provider 기반 .tftest.hcl을 도입해 제로패딩 CIDR 별칭 거부와 격리 SG 인, 아웃 비인가 규칙 부재 불변식을 플랜 단계에서 자동 검증했습니다."
           - "위 두 계층의 하드가드를 GitHub Actions CI에 결합하여 291개 테스트 게이트를 통과해야만 머지되도록 파이프라인을 확립했습니다."
         comparisonHeaders: ["비교 항목", "수동 코드 리뷰 및 배포 후 검증", "Terraform .tftest.hcl + CI 계약 하드가드 (채택)"]
         comparisonRows:
@@ -155,7 +155,7 @@ projects:
     domainSummary: "마인크래프트 서버와 Discord 봇, FastAPI 웹 위키 포털로 파편화된 유저 신원, 역할, 직업 데이터를 단일 진실 공급원 기준으로 실시간 동기화하는 백엔드 시스템입니다."
     period: "2026.04 - 2026.07"
     scale: "개인 프로젝트 (1인 단독 개발 및 실운영)"
-    contribution: "기여도 100%"
+    contribution: "1인 단독"
     repoUrl: "https://github.com/mmmphyun/rpg_sync_project"
     blogLinks:
       - title: "엔지니어링 시리즈 (전 6편)"
@@ -179,7 +179,7 @@ projects:
         value: "206ms → 14.64ms"
         sub: "92.9% 억제, 동기 I/O 풀 격리"
       - label: "소켓 단절 및 타임아웃"
-        value: "6/6 복구 및 오류 0건"
+        value: "6/6 전건 복구"
         sub: "@db_retry 및 3초 defer 방어"
     tasks:
       - id: "task-a"
@@ -192,7 +192,7 @@ projects:
           - "5분 만료 일회용 매직링크를 웹 DB 트랜잭션 내 조회 즉시 폐기하고 Redis Pub/Sub 기반 인게임 역할 자동 부여와 연동하여 운영자 개입 시간을 건당 30분 이상에서 5분 이내로 단축했습니다."
         comparisonHeaders: ["검증 항목", "단발성 동기 호출 / 수기 온보딩 (개선 전)", "선제 defer + 경계 정규화 + 일회용 매직링크 (개선 후)"]
         comparisonRows:
-          - ["3초 게이트웨이 타임아웃", "원격 DB 쓰기 지연 결합 시 Interaction failed 빈발", "선제 defer 토큰 및 전역 세션 풀링으로 타임아웃 오류 0건"]
+          - ["3초 게이트웨이 타임아웃", "원격 DB 쓰기 지연 결합 시 Interaction failed 빈발", "선제 defer 토큰 및 전역 세션 풀링으로 타임아웃 예외 배제"]
           - ["계정 도용 및 오입력 방어", "중복 바인딩 방치 및 무제한 재시도로 429 위험", "PostgreSQL UNIQUE(23505) 매핑 및 Redis 3회 오입력 즉시 잠금"]
           - ["인증 보안 및 온보딩 시간", "수기 안내 건당 30분 이상 소요", "트랜잭션 내 토큰 즉시 폐기, JWT 쿠키 연동으로 5분 이내 단축"]
 
@@ -258,7 +258,7 @@ projects:
     domainSummary: "중앙 서버 침해와 마스터 비밀번호 탈취 위협을 제거하기 위해 W3C WebAuthn Level 3 prf 확장과 하드웨어 보안 칩(TPM 2.0)을 연동하여 브라우저 Wasm 격리 메모리 내에서 대칭키를 즉석 유도 및 소거하는 무상태 자격증명 보관소 연구입니다."
     period: "2026.09 - 2026.10"
     scale: "개인 연구 (1인)"
-    contribution: "기여도 100%"
+    contribution: "1인 단독"
     repoUrl: "https://github.com/mmmphyun/PrfVault"
     blogLinks:
       - title: "연구 분석 포스트"
@@ -274,7 +274,7 @@ projects:
     diagramDark: "/security-agent-toolkit/portfolio/diagrams/prfvault-architecture-dark.svg"
     kpis:
       - label: "마스터 키 디스크 저장"
-        value: "0건 (제로화)"
+        value: "메모리 즉시 소거"
         sub: "TPM 2.0 엔클레이브 직접 유도"
       - label: "메모리 노출 국소화"
         value: "수 ms 단위 소거"
@@ -293,7 +293,7 @@ projects:
         comparisonHeaders: ["검증 영역", "플랫폼 한계 및 위협", "엔지니어링 구현 및 검증 결과"]
         comparisonRows:
           - ["플랫폼 PRF 확장 차단", "Windows webauthn.dll의 내장 TPM PRF 호출 거부", "Native Messaging Host 및 ncrypt.dll C-FFI 자동 폴백 구현"]
-          - ["마스터 키 영구 저장 위협", "디스크 볼트 파일 탈취 시 오프라인 무차별 대입 위험", "TPM 2.0 하드웨어 직접 유도로 디스크 상 키 저장 0건"]
+          - ["마스터 키 영구 저장 위협", "디스크 볼트 파일 탈취 시 오프라인 무차별 대입 위험", "TPM 2.0 하드웨어 직접 유도로 디스크 영구 저장 배제 및 메모리 소거"]
           - ["파이프라인 무결성 검증", "크로스 레이어 키 유도 및 AES-256-GCM 암호화 및 복호화", "crypto_core 3건 + native_host 14건 총 17개 케이스 전건 통과"]
 
       - id: "task-b"
@@ -316,7 +316,7 @@ projects:
     domainSummary: "대규모 인게임 선착순 보상 이벤트 시 발생하는 1,000 RPS 순간 스파이크 트래픽으로부터 게임 서버 메인 틱(50ms)과 RDB 커넥션 풀을 보호하기 위해 설계한 비동기 이벤트 파이프라인 및 K3s 오토스케일링 인프라입니다."
     period: "2026.06 - 2026.07"
     scale: "개인 아키텍처 연구 (1인)"
-    contribution: "기여도 100%"
+    contribution: "1인 단독"
     repoUrl: "https://github.com/mmmphyun/ru-beacon"
     blogLinks:
       - title: "고가용성 아키텍처 분석 포스트"
@@ -336,10 +336,10 @@ projects:
         value: "99.36% (1.17ms)"
         sub: "39,250건 중 38,999건 인메모리 차단"
       - label: "DB 커넥션 풀 보호"
-        value: "Pool(10) 고갈 0건"
+        value: "Pool(10) 고갈 배제"
         sub: "유효 250건만 Redis Streams 적재"
       - label: "게임 서버 메인 틱"
-        value: "0ms 블로킹"
+        value: "블로킹 배제"
         sub: "50ms 틱 루프와 네트워크 I/O 완전 분리"
     tasks:
       - id: "task-a"
@@ -353,7 +353,7 @@ projects:
         comparisonRows:
           - ["1,000 RPS 유입 시 RDB 도달량", "39,250건 전량 DB 커넥션 경합 시도", "유효 250건만 도달 (잉여 38,999건 [99.36%] 인메모리 조기 차단)"]
           - ["평균 거절 응답 지연시간", "커넥션 타임아웃(3,000ms+) 및 연쇄 실패", "평균 1.17ms 내 즉시 거절 (Fast-Fail)"]
-          - ["HikariCP(Pool=10) 상태", "즉시 고갈 및 API 응답 불능", "커넥션 고갈 0건 달성 및 유효 트래픽만 비동기 큐잉"]
+          - ["HikariCP(Pool=10) 상태", "즉시 고갈 및 API 응답 불능", "커넥션 고갈 배제 및 유효 트래픽만 비동기 큐잉"]
 
       - id: "task-b"
         topicLabel: "메인 틱 격리 & KEDA 스케일링"
@@ -364,7 +364,7 @@ projects:
           - "K3s 클러스터에 KEDA를 연동하고 Redis Streams 미처리 메시지 적체량(Pending/Lag)을 직접 감시하는 트리거를 구성해 워커 파드를 최소 2개에서 최대 10개까지 탄력 확장했으며 RDB 복합 유니크 제약과 XACK 확인 응답으로 최소 1회 처리 및 멱등성을 보장했습니다."
         comparisonHeaders: ["검증 항목", "메인 스레드 동기 호출 / CPU 기반 HPA", "비동기 워커 격리 + KEDA Streams 트리거 (채택)"]
         comparisonRows:
-          - ["게임 서버 메인 틱(50ms)", "외부 HTTP 응답 대기 중 월드 연산 멈춤 발생", "비동기 스레드 풀 즉시 위임으로 메인 틱 블로킹 0ms"]
+          - ["게임 서버 메인 틱(50ms)", "외부 HTTP 응답 대기 중 월드 연산 멈춤 발생", "비동기 스레드 풀 즉시 위임으로 메인 틱 블로킹 배제"]
           - ["오토스케일링 트리거 반응", "I/O 대기 중 낮은 CPU율로 인해 스케일아웃 미작동", "Redis Streams 큐 적체 감지 즉시 워커 2 → 10 Pod 확장"]
           - ["장애 복구 및 영속 멱등성", "워커 재시작 시 메시지 유실 또는 중복 지급 위험", "Consumer Group PEL(XPENDING) 재처리 및 RDB 복합 유니크 방어"]
 
@@ -381,11 +381,11 @@ governanceCases:
         url: "/security-agent-toolkit/blog/proj-aleph-project-01-contract-governance-harness/"
     summary:
       action: "Pydantic v2 불변 계약 모델, 모의 데이터 체인, 디렉터리 화이트리스트 CI 검사기, 291개 자동화 테스트"
-      result: "이슈 #111(모의 데이터 단절 결함) 식별 후 교차 계약 하네스 구축(PR #112), 이후 모듈 연동 스키마 불일치 재발 0건 및 Git 병합 충돌 0건 유지"
+      result: "이슈 #111(모의 데이터 단절 결함) 식별 후 교차 계약 하네스 구축(PR #112), 이후 모듈 연동 스키마 불일치 및 Git 병합 충돌 재발 방지"
     details:
       problem: "수집 모듈이 미완성된 상태에서 후행 탐지 및 대응 모듈 개발이 지연되는 병목이 있었습니다. 또한 4인이 각자 도메인을 구현하면서 직무 간 Mock 데이터 체인의 인과관계가 단절되고 룰-매퍼 간 매핑 결함(이슈 #111)이 발생했습니다."
       action: "Pydantic v2 코어 모델에 불변 데이터 규격을 정의하고 모의 데이터 체인을 주입해 병렬 개발을 지원했습니다. 디렉터리 화이트리스트 검사기로 비인가 파일 수정을 차단하고 수집, 탐지, 대응 전 구간 교차 계약 테스트를 구축(PR #112)했습니다."
-      result: "선행 결함(이슈 #111) 직후 교차 계약 테스트와 화이트리스트 하네스를 구축(PR #112)하여 단일 게이트 291개 테스트 체계를 확립하고 이후 모듈 연동 스키마 불일치 재발 0건 및 비인가 파일 수정 즉시 차단을 검증했습니다."
+      result: "선행 결함(이슈 #111) 직후 교차 계약 테스트와 화이트리스트 하네스를 구축(PR #112)하여 단일 게이트 291개 테스트 체계를 확립하고 이후 모듈 연동 스키마 불일치 재발 방지 및 비인가 파일 수정 즉시 차단을 검증했습니다."
     stacks:
       - "Pydantic v2"
       - "Git Pre-commit"
