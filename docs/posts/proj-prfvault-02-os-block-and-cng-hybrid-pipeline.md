@@ -12,17 +12,17 @@ status: "published"
 
 1편에서는 W3C WebAuthn Level 3 PRF 확장과 Rust WebAssembly 코어를 결합하여 외부 서버 없는 로컬 볼트 암복호화 엔진을 구축했다. 가상 인증자 환경에서는 사용자 생체 인증을 거쳐 256비트 대칭키를 유도하고 볼트를 복호화하는 과정이 정상 동작했다.
 
-그러나 개발 검증용 가상 환경을 벗어나 데스크톱 실기 하드웨어에 탑재한 순간 예상치 못한 장벽에 직면했다. 브라우저는 PRF 확장을 지원한다고 응답했으나, 운영체제 계층이 하드웨어 보안 모듈 연동을 거부하며 빈 결과값을 반환했다.
+그러나 개발 검증용 가상 환경을 벗어나 데스크톱 실기 하드웨어에 탑재한 순간 운영체제 계층의 인터페이스 차단이라는 제약에 직면했다. 브라우저는 PRF 확장을 지원한다고 응답했으나, 운영체제 계층이 하드웨어 보안 모듈 연동을 거부하며 빈 결과값을 반환했다.
 
 외장 YubiKey를 소지하지 않은 일반 데스크톱 사용자는 브라우저 표준 API만으로 로컬 볼트를 열 수 없었다. 이 플랫폼 결함을 해결하기 위해 웹 표준 호출 실패 시 즉시 운영체제 내장 TPM 2.0 칩을 직접 호출하는 네이티브 폴백 파이프라인을 설계했다.
 
-Chrome Native Messaging 규약으로 브라우저와 로컬 프로세스를 연결하고, 외부 의존성 없는 Rust C-FFI로 Windows CNG 시스템 API를 직접 호출했다. 이를 통해 Windows Hello 인증과 연동된 TPM 2.0 엔클레이브에서 256비트 대칭키를 직접 유도하는 하이브리드 아키텍처를 완성했다.
+Chrome Native Messaging 규약으로 브라우저와 로컬 프로세스를 연결하고, 외부 의존성 없는 Rust C-FFI로 Windows CNG 시스템 API를 직접 호출했다. 이를 통해 Windows Hello 인증과 연동된 TPM 2.0 보안 칩에서 256비트 대칭키를 직접 유도하는 하이브리드 아키텍처를 구축했다.
 
 ---
 
 ## 2. 전체 산출물 구조 및 진단/파이프라인 체계
 
-하이브리드 키 도출 체계는 웹 표준 1차 호출 실패를 감지한 직후 Chrome Native Messaging IPC를 거쳐 Windows CNG로 전환되는 페일오버 흐름을 따른다.
+하이브리드 키 도출 체계는 웹 표준 1차 호출 실패를 감지한 직후 Chrome Native Messaging IPC를 거쳐 Windows CNG로 전환되는 자동 폴백 흐름을 따른다.
 
 ```mermaid
 sequenceDiagram
@@ -45,7 +45,7 @@ sequenceDiagram
     NativeHost->>CNG: NCryptOpenStorageProvider & NCryptOpenKey
     CNG->>User: Windows Hello 생체인증 / PIN 프롬프트
     User->>CNG: 생체인증 승인
-    CNG->>CNG: TPM 2.0 엔클레이브 HMAC-SHA256 연산
+    CNG->>CNG: TPM 2.0 하드웨어 보안 모듈 HMAC-SHA256 연산
     CNG-->>NativeHost: 32바이트 하드웨어 대칭키 반환
     NativeHost-->>Ext: 4B LE 길이 프리픽스 바이너리 응답
     Ext->>Wasm: 32B PRF Key 전달
@@ -66,7 +66,7 @@ Phase 1 Spike 단계에서 구축한 WebAuthn PRF 클라이언트를 실제 데�
 
 2차 테스트에서 Windows Hello를 명시 지정하고 4자리 OS PIN을 통과했으나 `{"prf": {"enabled": false}}`가 반환되며 확장이 차단되었다. 3차로 `residentKey: "required"`와 Salt를 사전 바인딩했으나 거부 결과는 변하지 않았다.
 
-4차 테스트에서 구형 TPM 친화 알고리즘인 `RS256 (-257)`을 1순위로 선언하고 CTAP 2.0 `hmacCreateSecret: true` 플래그를 병행 주입했다. 브라우저는 Capabilities 질의에서 두 확장을 모두 지원한다고 응답했으나, 운영체제 인증자는 `{"hmacCreateSecret": false, "prf": {"enabled": false}}`를 반환하며 대칭키 인터페이스를 최종 폐쇄했다.
+4차 테스트에서 구형 TPM 친화 알고리즘인 `RS256 (-257)`을 1순위로 선언하고 CTAP 2.0 `hmacCreateSecret: true` 플래그를 병행 주입했다. 브라우저는 Capabilities 질의에서 두 확장을 모두 지원한다고 응답했으나, 운영체제 인증자는 `{"hmacCreateSecret": false, "prf": {"enabled": false}}`를 반환하며 대칭키 유도 확장을 지원하지 않았다.
 
 계층별 원인을 규명한 결과 하드웨어와 브라우저에는 결함이 없었다. Intel PTT TPM 2.0은 TCG 표준 `TPM2_HMAC` 명령을 내장하고 있었으며 Chromium 153 브라우저 역시 PRF 파이프라인을 온전히 활성화한 상태였다.
 
@@ -123,7 +123,7 @@ export async function deriveMasterKeyWithFallback(
 
 네이티브 호스트 프로세스는 Windows 운영체제 암호화 코어인 CNG API를 호출해야 했다. 서드파티 크레이트나 무거운 의존성을 추가하지 않고 Rust 기본 언어 기능으로 `ncrypt.dll` 시스템 심볼을 직접 선언했다.
 
-`windows-sys` 크레이트조차 의존성 목록에서 제외하고 필요한 6대 Win32 C-API 함수와 버퍼 구조체(`NCryptBufferDesc`, `NCryptBuffer`)만을 바인딩하여 바이너리 크기를 최소화하고 외부 공급망 공격 표면을 차단했다.
+`windows-sys` 크레이트조차 의존성 목록에서 제외하고 필요한 6대 Win32 네이티브 API 함수와 버퍼 구조체(`NCryptBufferDesc`, `NCryptBuffer`)만을 바인딩하여 바이너리 크기를 최소화하고 외부 공급망 위험 노출을 줄였다.
 
 ```rust
 // crates/native-host/src/windows_hello.rs
@@ -154,7 +154,7 @@ Win32 C-API 호출 시 핸들 누수를 방지하기 위해 RAII 패턴 래퍼 �
 
 운영체제 TPM 2.0 프로바이더 접근 시 우선순위를 설정했다. 1순위로 Windows Hello 생체 인증 및 PIN을 담당하는 `Microsoft Passport Key Storage Provider`를 호출하고, 실패 시 2순위로 플랫폼 TPM 전용 프로바이더인 `Microsoft Platform Crypto Provider`를 탐색했다.
 
-도메인별로 격리된 영속 키(`PrfVault_{domain}`)를 탐색한 후 존재하지 않을 경우 타원곡선 `ECDSA_P256` 키 페어를 신규 생성하여 TPM 엔클레이브에 봉인했다.
+도메인별로 격리된 영속 키(`PrfVault_{domain}`)를 탐색한 후 존재하지 않을 경우 타원곡선 `ECDSA_P256` 키 페어를 신규 생성하여 TPM KSP에 영속화했다.
 
 ```rust
 // crates/native-host/src/windows_hello.rs
@@ -171,7 +171,7 @@ let derive_status = unsafe {
 
 `NCryptDeriveKey` API에 `HMAC` 알고리즘과 `SHA256` 해시 식별자를 전달하고, 브라우저가 전달한 32바이트 솔트 챌린지를 `KDF_SECRET_PREPEND` 파라미터로 주입했다.
 
-사용자가 지문 또는 PIN 인증 프롬프트를 승인하면 TPM 2.0 하드웨어 칩 내부에서 HMAC 연산이 수행되어 정확히 32바이트(256비트) 대칭키를 Rust 버퍼로 반환한다.
+함수 호출 즉시 Windows OS 보안 서브시스템이 시스템 포그라운드에 생체 인증 UI를 직접 렌더링한다. 사용자가 생체 인증 프롬프트를 승인하면 KSP 내부에서 타원곡선 비밀키와 솔트를 결합하여 정확히 32바이트 대칭키를 Rust 버퍼로 반환한다.
 
 사용자가 인증 프롬프트를 취소하면 NTE_USER_CANCELLED 에러를 포착하여 안전한 응답으로 변환했다.
 
@@ -247,6 +247,6 @@ PS C:\work\security-agent-toolkit\.cache\repos\prfvault> .\scripts\test-native-h
 
 데스크톱 실기 환경에서 `webauthn.dll`이 PRF 확장을 일방적으로 거부했을 때 플랫폼 종속성이 소프트웨어 아키텍처에 미치는 영향력을 확인했다. W3C 표준 명세서에 기능이 정의되어 있고 Chromium 브라우저가 지원 플래그를 켜두었더라도, 하위 운영체제 권한 계층이 게이트웨이를 닫아버리면 상위 웹 애플리케이션은 무력화된다.
 
-이론적 완결성에만 매몰되어 웹 표준 단독 구현을 고집했다면 Windows 실기 환경에서 동작하지 않는 반쪽짜리 결과물에 머물렀을 것이다. 플랫폼의 제약을 정면으로 인정하고 Chrome Native Messaging과 Windows CNG 저수준 C-FFI를 연결하여 네이티브 하드웨어 폴백 파이프라인을 구축한 결정이 프로젝트의 실용성을 확보했다.
+이론적 완결성에만 매몰되어 웹 표준 단독 구현을 고집했다면 실제 사용자 데스크톱 환경에서 동작하지 않는 제약에 머물렀을 것이다. 플랫폼의 제약을 정면으로 인정하고 Chrome Native Messaging과 Windows CNG 저수준 C-FFI를 연결하여 네이티브 하드웨어 폴백 파이프라인을 구축한 결정이 프로젝트의 실용성을 확보했다.
 
 또한 무거운 서드파티 크레이트에 기대지 않고 운영체제 내장 `ncrypt.dll` 시스템 심볼을 직접 바인딩하고 RAII 핸들 수명주기를 강제함으로써 바이너리 오버헤드와 공급망 리스크를 동시에 통제할 수 있었다. 실전 보안 엔지니어링에서는 상위 레이어의 표준 명세뿐만 아니라 하위 OS와 하드웨어가 실제로 제공하는 인터페이스의 경계를 파악하고 이를 제어할 수 있는 저수준 시스템 구현 역량이 필수적이라는 기술적 결론을 도출했다.
