@@ -20,7 +20,7 @@ status: "published"
 
 외부 Slack API 서버의 일시적 장애나 네트워크 패킷 유실, 소켓 타임아웃이 발생하더라도 사전에 집행된 L4/L7 인프라 차단 조치가 롤백되거나 전체 런타임이 중단되어서는 안 되었다.
 
-클라우드 A 테크 리드로서 관제 알림 실패가 보안 방어선을 침범하지 못하도록 물리적 결함 격리 경계를 수립했다. 10초 관통 SLA를 사수하기 위한 5대 단계별 지연시간 예산 분배와 Linux 소켓 블로킹 제어, 다중 위협 배치 환경에서의 엄격한 부분 실패 통제, 그리고 멱등성 기반 알림 폭풍 차단 아키텍처를 설계하여 엔드투엔드 파이프라인을 완결했다.
+클라우드 A 파이프라인 구현자로서 관제 알림 실패가 보안 방어선을 침범하지 못하도록 물리적 결함 격리 경계를 수립했다. 10초 관통 SLA를 사수하기 위한 5대 단계별 지연시간 예산 분배와 Linux 소켓 블로킹 제어, 다중 위협 배치 환경에서의 엄격한 부분 실패 통제, 그리고 멱등성 기반 알림 폭풍 차단 아키텍처를 설계하여 엔드투엔드 파이프라인을 완결했다.
 
 ## 2. 전체 산출물 구조 및 진단/파이프라인 체계
 
@@ -36,12 +36,12 @@ flowchart LR
     REM --> MARK["DynamoDB 선제 마킹<br/>(quarantined=True)"]
     MARK --> SLACK["Slack Webhook 전송<br/>(독립 try-except 격리)"]
     SLACK -- "성공" --> RET_OK["slack_notified=True<br/>(정상 반환)"]
-    SLACK -- "실패/타임아웃" --> RET_FAIL["slack_notified=False<br/>(차단 상태 영구 보존)"]
+    SLACK -- "실패/타임아웃" --> RET_FAIL["slack_notified=False<br/>(차단 상태 안전 유지)"]
 ```
 
-## 3. 기존 체계의 한계와 도전 과제: 외부 서드파티 통지 결함의 차단 트랜잭션 전염과 소켓 블로킹
+## 3. 기존 체계의 한계와 도전 과제: 외부 서드파티 통지 결함의 차단 트랜잭션 결함 전파와 소켓 블로킹
 
-개별 모듈을 단순 순차 호출로 결합할 경우, 외부 서드파티 통지 채널의 런타임 결함이 상위 보안 오케스트레이터 전체를 마비시키는 치명적 병목이 발생한다. Slack Incoming Webhook은 공용 인터넷을 통과하는 단방향 HTTP POST 요청이므로 DNS 질의 실패, TLS 협상 지연, Slack 서버 5xx 장애, 속도 제한(HTTP 429) 등 통제 불가능한 네트워크 결함에 항시 노출된다.
+개별 모듈을 단순 순차 호출로 결합할 경우, 외부 서드파티 통지 채널의 런타임 결함이 상위 보안 오케스트레이터 전체를 중단시키는 단일 실패점 결함이 발생한다. Slack Incoming Webhook은 공용 인터넷을 통과하는 단방향 HTTP POST 요청이므로 DNS 질의 실패, TLS 협상 지연, Slack 서버 5xx 장애, 속도 제한(HTTP 429) 등 통제 불가능한 네트워크 결함에 항시 노출된다.
 
 이러한 외부 I/O 호출부를 예외 격리 없이 배치하면 Slack 전송 실패 시 발생한 예외가 상위 프로세스로 전파되어 Lambda 핸들러가 비정상 종료된다. RDBMS의 2단계 커밋(2PC)이나 Saga 패턴을 모방하여 통지 실패 시 선행 조치를 보상 트랜잭션으로 취소하도록 설계하면, 침해 호스트의 네트워크 차단이 해제되어 공격자에게 시스템이 다시 노출되는 치명적인 보안 취약점(Fail-Open)이 유발된다.
 
@@ -129,9 +129,9 @@ return response
 
 ### 4.4. 원자적 격리 마킹(quarantined=True)을 통한 멱등성 보장 및 알림 폭풍 원천 차단
 
-무차별 대입 공격은 짧은 시간 동안 수백 수천 건의 실패 로그를 쏟아낸다. 이미 L4/L7 차단이 집행되었음에도 CloudWatch Logs 파이프라인 상에 잔류하던 후속 실패 로그 배치가 수 초 간격으로 연속 인입된다.
+무차별 대입 공격은 짧은 시간 동안 대량의 실패 로그를 발생시킨다. 이미 L4/L7 차단이 집행되었음에도 CloudWatch Logs 파이프라인 상에 잔류하던 후속 실패 로그 배치가 수 초 간격으로 연속 인입된다.
 
-후속 이벤트 인입 시마다 오케스트레이터가 Boto3 차단 API를 재호출하고 Slack 알림을 재전송하면 AWS API Throttling이 발생할 뿐만 아니라 SecOps 채널에 수십 개의 카드가 도배되는 알림 폭풍이 초래된다.
+후속 이벤트 인입 시마다 오케스트레이터가 Boto3 차단 API를 재호출하고 Slack 알림을 재전송하면 AWS API Throttling이 발생할 뿐만 아니라 SecOps 채널로의 연쇄 알림 쇄도가 초래된다.
 
 ```python
 # src/remediation/orchestrator.py
@@ -154,7 +154,7 @@ else:
 
 구현한 오케스트레이터 파이프라인의 종단 무결성과 결함 격리 특성을 증빙하기 위해 `tests/unit/test_remediation.py`에 포괄적인 단위 테스트 슈트를 구축하고 검증을 완결했다.
 
-첫째, `test_threat_orchestrator_slack_integration_success` 테스트를 통해 5회 실패 로그 인입 시 L4 SG 격리 및 L7 WAF 차단 성공과 함께 `slack_notified = True`가 정상 반환됨을 확인했다. 둘째, `test_threat_orchestrator_slack_failure_fault_isolation` 테스트를 통해 Slack Webhook 호출 시 `RuntimeError` 예외가 발생하더라도 `slack_notified = False`만 반환될 뿐 실제 인스턴스의 격리 SG 상태와 WAF IPSet 차단 목록이 영구 보존됨을 실증했다.
+첫째, `test_threat_orchestrator_slack_integration_success` 테스트를 통해 5회 실패 로그 인입 시 L4 SG 격리 및 L7 WAF 차단 성공과 함께 `slack_notified = True`가 정상 반환됨을 확인했다. 둘째, `test_threat_orchestrator_slack_failure_fault_isolation` 테스트를 통해 Slack Webhook 호출 시 `RuntimeError` 예외가 발생하더라도 `slack_notified = False`만 반환될 뿐 실제 인스턴스의 격리 SG 상태와 WAF IPSet 차단 목록이 안전하게 유지됨을 실증했다.
 
 셋째, `test_threat_orchestrator_slack_no_webhook_url` 및 `test_threat_orchestrator_slack_env_var_fallback` 테스트를 통해 환경 변수 미설정 시의 무장애 통과와 우선순위 폴백 동작을 확인했다. 넷째, 격리 마킹 직후 동일 타깃 공격에 대해 `auth_window.check_threat()`가 `False`를 반환함으로써 중복 차단 시도가 원천 억제됨을 증빙했다.
 
@@ -164,4 +164,4 @@ else:
 
 외부 네트워크 I/O를 포함하는 서버리스 아키텍처에서는 Linux 커널의 기본 소켓 동작 방식까지 정밀하게 통제해야 10초 관통 대응 SLA를 사수할 수 있음을 확인했다. 커널의 기본 TCP SYN 재전송 동작을 방치할 경우 서버리스 핸들러의 실행 시간 상한 전체가 잠식될 수 있음을 규명하고, 시간 예산 기반의 엄격한 타임아웃 통제로 결정론적 최대 지연시간을 달성했다.
 
-단일 배치 내 복수 위협에 대한 `all()` 기반 부분 실패 판정과 DynamoDB 선제 격리 마킹을 결합함으로써, 침해사고 대응의 신뢰성과 멱등성을 동시에 확보하는 엔터프라이즈급 서버리스 보안 파이프라인을 완결했다.
+단일 배치 내 복수 위협에 대한 `all()` 기반 부분 실패 판정과 DynamoDB 선제 격리 마킹을 결합함으로써, 침해사고 대응의 신뢰성과 멱등성을 동시에 확보하는 서버리스 보안 오케스트레이터 파이프라인을 완결했다.
