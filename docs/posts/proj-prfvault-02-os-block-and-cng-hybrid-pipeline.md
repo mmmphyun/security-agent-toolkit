@@ -28,30 +28,37 @@ status: "published"
 sequenceDiagram
     autonumber
     actor User as 사용자
-    participant Ext as Extension (Popup)
-    participant Browser as Browser WebAuthn API
-    participant OS as Windows webauthn.dll
-    participant NativeHost as Native Host (native-host.exe)
-    participant CNG as Windows CNG (ncrypt.dll / TPM 2.0)
-    participant Wasm as Rust Wasm Core
 
-    User->>Ext: 볼트 잠금 해제 요청
-    Ext->>Browser: 1차 navigator.credentials.get (prf.eval)
-    Browser->>OS: 플랫폼 인증자 PRF 확장 요청
-    OS-->>Browser: PRF 명시적 거부 (enabled: false)
-    Browser-->>Ext: ExtensionNotSupported 에러 반환
+    box 웹 브라우저 샌드박스
+        participant Ext as Extension (Popup)
+        participant Browser as Browser WebAuthn API
+        participant OS as Windows webauthn.dll
+    end
+
+    box 로컬 데스크톱 및 하드웨어
+        participant NativeHost as Native Host (native-host.exe)
+        participant CNG as Windows CNG (ncrypt.dll / TPM 2.0)
+        participant Wasm as Rust Wasm Core
+    end
+
+    User->>+Ext: 볼트 잠금 해제 요청
+    Ext->>+Browser: 1차 navigator.credentials.get (prf.eval)
+    Browser->>+OS: 플랫폼 인증자 PRF 확장 요청
+    OS-->>-Browser: PRF 명시적 거부 (enabled: false)
+    Browser-->>-Ext: ExtensionNotSupported 에러 반환
     Note over Ext,NativeHost: 하이브리드 자동 폴백 트리거
-    Ext->>NativeHost: 2차 Native Messaging 요청 (4B LE Framed JSON)
-    NativeHost->>CNG: NCryptOpenStorageProvider & NCryptOpenKey
-    CNG->>User: Windows Hello 생체인증 / PIN 프롬프트
-    User->>CNG: 생체인증 승인
+    Ext->>+NativeHost: 크롬 네이티브 메시징 요청 (4B LE Framed JSON)
+    NativeHost->>+CNG: NCryptOpenStorageProvider & NCryptOpenKey
+    CNG->>+User: Windows Hello 생체인증 / PIN 프롬프트
+    User-->>-CNG: 생체인증 승인
     CNG->>CNG: TPM 2.0 하드웨어 보안 모듈 HMAC-SHA256 연산
-    CNG-->>NativeHost: 32바이트 하드웨어 대칭키 반환
-    NativeHost-->>Ext: 4B LE 길이 프리픽스 바이너리 응답
-    Ext->>Wasm: 32B PRF Key 전달
+    CNG-->>-NativeHost: 32바이트 하드웨어 대칭키 반환
+    NativeHost-->>-Ext: 4B LE 길이 프리픽스 바이너리 응답
+    Ext->>+Wasm: 32B PRF Key 전달
     Wasm->>Wasm: HKDF-SHA256 마스터 키 파생 및 볼트 복호화
     Wasm->>Wasm: zeroize 메모리 물리 소거
-    Ext-->>User: 볼트 잠금 해제 완료
+    Wasm-->>-Ext: 복호화된 볼트 데이터 반환
+    Ext-->>-User: 볼트 잠금 해제 완료
 ```
 
 브라우저가 마더보드의 물리 칩을 직접 제어할 수 없으므로, 로컬 실행 파일이 운영체제 시스템 라이브러리를 거쳐 TPM 2.0 칩과 통신하도록 역할을 분담했다.
