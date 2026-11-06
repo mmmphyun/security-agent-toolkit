@@ -1,7 +1,7 @@
 ---
 title: "PrfVault 2편: 운영체제 PRF 차단 실증과 Windows CNG TPM 2.0 하이브리드 폴백"
 slug: "proj-prfvault-02-os-block-and-cng-hybrid-pipeline"
-description: "Intel PTT TPM 2.0 실기 환경의 W3C WebAuthn PRF 확장 차단 실측과 Windows CNG C-FFI 직접 바인딩을 통한 Chrome Native Messaging 하이브리드 키 유도 파이프라인 구축 기록"
+description: "Intel PTT TPM 2.0 실기 환경의 W3C WebAuthn PRF 확장 차단 실측과 Windows CNG C-FFI 직접 바인딩을 통한 크롬 네이티브 메시징 하이브리드 키 유도 파이프라인 구축 기록"
 pubDate: 2026-10-15
 category: "프로젝트/PrfVault 제로 서버 패스워드리스 금고"
 tags: ["WindowsCNG", "TPM2", "NativeMessaging", "Rust", "FFI", "PrfVault"]
@@ -14,15 +14,15 @@ status: "published"
 
 그러나 개발 검증용 가상 환경을 벗어나 데스크톱 실기 하드웨어에 탑재한 순간 운영체제 계층의 인터페이스 차단이라는 제약에 직면했다. 브라우저는 PRF 확장을 지원한다고 응답했으나, 운영체제 계층이 하드웨어 보안 모듈 연동을 거부하며 빈 결과값을 반환했다.
 
-외장 YubiKey를 소지하지 않은 일반 데스크톱 사용자는 브라우저 표준 API만으로 로컬 볼트를 열 수 없었다. 이 플랫폼 결함을 해결하기 위해 웹 표준 호출 실패 시 즉시 운영체제 내장 TPM 2.0 칩을 직접 호출하는 네이티브 폴백 파이프라인을 설계했다.
+시중의 고가 외장 보안키를 별도 구매하지 않은 일반 데스크톱 사용자는 브라우저 표준 API만으로 로컬 볼트를 열 수 없었다. 이 플랫폼 결함을 해결하기 위해 웹 표준 호출 실패 시 즉시 운영체제 내장 TPM 2.0 칩을 직접 호출하는 네이티브 폴백 파이프라인을 설계했다.
 
-Chrome Native Messaging 규약으로 브라우저와 로컬 프로세스를 연결하고, 외부 의존성 없는 Rust C-FFI로 Windows CNG 시스템 API를 직접 호출했다. Windows Hello 인증과 연동된 TPM 2.0 보안 칩에서 256비트 대칭키를 직접 유도하는 하이브리드 아키텍처를 구축했다.
+브라우저와 로컬 프로그램을 연결하는 크롬 네이티브 메시징 규약으로 프로세스를 띄우고, 외부 의존성 없는 Rust C-FFI로 Windows CNG 시스템 API를 직접 호출했다. Windows Hello 인증과 연동된 TPM 2.0 보안 칩에서 256비트 대칭키를 직접 유도하는 하이브리드 아키텍처를 구축했다.
 
 ---
 
 ## 2. 전체 산출물 구조 및 진단/파이프라인 체계
 
-하이브리드 키 도출 체계는 웹 표준 1차 호출 실패를 감지한 직후 Chrome Native Messaging IPC를 거쳐 Windows CNG로 전환되는 자동 폴백 흐름을 따른다.
+하이브리드 키 도출 체계는 웹 표준 1차 호출 실패를 감지한 직후 크롬 네이티브 메시징 IPC를 거쳐 Windows CNG로 전환되는 자동 폴백 흐름을 따른다.
 
 ```mermaid
 sequenceDiagram
@@ -54,7 +54,7 @@ sequenceDiagram
     Ext-->>User: 볼트 잠금 해제 완료
 ```
 
-파이프라인의 핵심은 웹 표준 API 호출 실패를 즉각 포착하여 사용자의 추가 조작 없이 네이티브 호스트 프로세스로 제어권을 넘기는 데 있다.
+브라우저가 마더보드의 물리 칩을 직접 제어할 수 없으므로, 로컬 실행 파일이 운영체제 시스템 라이브러리를 거쳐 TPM 2.0 칩과 통신하도록 역할을 분담했다.
 
 도출된 32바이트 대칭키는 표준 PRF 출력과 동일한 규격으로 Rust Wasm 코어에 전달되어 단일한 HKDF-SHA256 파이프라인으로 처리된다.
 
@@ -70,7 +70,7 @@ Phase 1 Spike 단계에서 구축한 WebAuthn PRF 클라이언트를 실제 데�
 
 계층별 원인을 규명한 결과 하드웨어와 브라우저에는 결함이 없었다. Intel PTT TPM 2.0은 TCG 표준 `TPM2_HMAC` 명령을 내장하고 있었으며 Chromium 153 브라우저 역시 PRF 파이프라인을 온전히 활성화한 상태였다.
 
-병목 지점은 Windows 운영체제의 `webauthn.dll` 모듈이었다. Windows OS는 외장 YubiKey 같은 로밍 인증자에는 `hmac-secret` 처리를 허용하지만, 데스크톱 내장 TPM을 사용하는 플랫폼 인증자에 대해서는 브라우저 API 레벨에서 대칭키 유도 확장을 개방하지 않고 강제로 비활성화했다.
+병목 지점은 Windows 운영체제의 `webauthn.dll` 모듈이었다. Windows OS는 USB 포트에 꽂는 외장 보안키에는 `hmac-secret` 처리를 허용하지만, 데스크톱 내장 TPM을 사용하는 플랫폼 인증자에 대해서는 브라우저 API 레벨에서 대칭키 유도 확장을 개방하지 않고 강제로 비활성화했다.
 
 글로벌 패스워드 매니저인 Bitwarden의 공식 이슈(Issue #19858)에서도 동일한 플랫폼 레벨의 구조적 결함이 보고되었다. Bitwarden 분석에 따르면 Windows Hello 플랫폼 인증자는 Windows 11 환경에서도 PRF 확장에 대해 일관되게 `Encryption not supported` 오류를 반환한다.
 
@@ -80,9 +80,9 @@ Phase 1 Spike 단계에서 구축한 WebAuthn PRF 클라이언트를 실제 데�
 
 ## 4. 엔지니어링 의사결정 및 리팩터링
 
-### 4.1. 브라우저 PRF 거부 감지 및 Chrome Native Messaging 투명 폴백 파이프라인
+### 4.1. 브라우저 PRF 거부 감지 및 크롬 네이티브 메시징 투명 폴백 파이프라인
 
-웹 표준이 차단되었다고 해서 네이티브 단독 구조로 축소하지 않았다. 외장 FIDO2 보안키를 연결하거나 향후 운영체제 업데이트로 기능이 개방될 가능성에 대비하여 1차 진입점은 W3C WebAuthn PRF 호출을 유지했다.
+웹 표준이 차단되었다고 해서 네이티브 단독 구조로 축소하지 않았다. 외장 보안키를 연결하거나 향후 운영체제 업데이트로 기능이 개방될 가능성에 대비하여 1차 진입점은 W3C WebAuthn PRF 호출을 유지했다.
 
 브라우저 표준 호출에서 예외가 발생하거나 `prf.enabled === false`가 반환되면 catch 블록에서 즉시 로컬 호스트 프로세스를 호출하는 이중화 클라이언트를 구현했다.
 
@@ -115,15 +115,15 @@ export async function deriveMasterKeyWithFallback(
 }
 ```
 
-`deriveMasterKeyWithFallback` 함수는 브라우저 표준 WebAuthn 호출 실패 시 Chrome Native Messaging API(`chrome.runtime.sendNativeMessage`)를 호출한다.
+`deriveMasterKeyWithFallback` 함수는 브라우저 표준 WebAuthn 호출 실패 시 크롬 네이티브 메시징 API(`chrome.runtime.sendNativeMessage`)를 호출한다.
 
 확장 프로그램 백그라운드 Service Worker와 네이티브 호스트(`com.prfvault.native_host`) 간 통신에는 5,000ms 제한시간 타이머를 적용하여 프로세스 응답 지연으로 인한 Promise 누수를 차단했다.
 
 ### 4.2. 외부 크레이트 의존성을 배제한 Windows CNG(ncrypt.dll) C-FFI 직접 바인딩과 RAII 자원 관리
 
-네이티브 호스트 프로세스는 Windows 운영체제 암호화 코어인 CNG API를 호출해야 했다. 서드파티 크레이트나 무거운 의존성을 추가하지 않고 Rust 기본 언어 기능으로 `ncrypt.dll` 시스템 심볼을 직접 선언했다.
+네이티브 호스트 프로세스는 Windows 운영체제 암호화 코어인 CNG API를 호출해야 했다. 수많은 Windows API 라이브러리를 통째로 가져오는 대신 필요한 6대 함수 심볼과 구조체만을 Rust 기본 FFI로 직접 선언했다.
 
-`windows-sys` 크레이트조차 의존성 목록에서 제외하고 필요한 6대 Win32 네이티브 API 함수와 버퍼 구조체(`NCryptBufferDesc`, `NCryptBuffer`)만을 바인딩하여 바이너리 크기를 최소화하고 외부 공급망 위험 노출을 줄였다.
+`windows-sys` 크레이트조차 의존성 목록에서 제외하고 필요한 Win32 네이티브 API 함수와 버퍼 구조체(`NCryptBufferDesc`, `NCryptBuffer`)만을 바인딩하여 바이너리 크기를 줄이고 외부 공급망 위험 노출을 최소화했다.
 
 ```rust
 // crates/native-host/src/windows_hello.rs
@@ -146,7 +146,7 @@ impl Drop for SafeProviderHandle {
 }
 ```
 
-Win32 C-API 호출 시 핸들 누수를 방지하기 위해 RAII 패턴 래퍼 구조체 `SafeProviderHandle`과 `SafeKeyHandle`을 정의했다.
+Win32 C-API 호출 시 핸들을 닫지 않아 발생하는 OS 메모리 누수를 방지하기 위해 RAII 패턴 래퍼 구조체 `SafeProviderHandle`과 `SafeKeyHandle`을 정의했다.
 
 함수 실행 중 에러가 발생하여 조기 반환되거나 스택 언와인딩이 일어나더라도 `Drop` 트레이트가 `NCryptFreeObject`를 기계적으로 호출하여 OS 메모리 핸들을 즉시 회수한다.
 
@@ -177,9 +177,9 @@ let derive_status = unsafe {
 
 ### 4.4. 4바이트 리틀 엔디안 바이너리 프레이밍과 프로토콜 침해 방어 페일세이프
 
-Chrome 브라우저와 네이티브 호스트 프로세스는 표준 입출력 스트림을 통해 통신한다. 프로토콜 명세에 따라 모든 메시지는 본문 직전에 메시지 바이트 길이를 나타내는 4바이트 리틀 엔디안 정수 프리픽스를 포함해야 한다.
+Chrome 브라우저와 네이티브 호스트 프로세스는 가장 기초적인 IPC 수단인 표준 입출력 스트림을 통해 통신한다. 크롬 네이티브 메시징 규약에 따라 브라우저는 모든 메시지 본문 직전에 데이터 길이를 4바이트 리틀 엔디안 정수로 먼저 전송한다.
 
-버퍼 오버플로우와 힙 메모리 고갈 공격을 방지하기 위해 단일 메시지 최대 크기를 1MB(`MAX_MESSAGE_SIZE`)로 제한하는 프레임 리더를 구축했다.
+버퍼 오버플로우와 메모리 고갈 공격을 방지하기 위해 규격에 정의된 단일 메시지 상한인 1MB(`MAX_MESSAGE_SIZE`)를 검증하는 프레임 리더를 구축했다.
 
 ```rust
 // crates/native-host/src/protocol.rs
@@ -245,8 +245,8 @@ PS C:\work\security-agent-toolkit\.cache\repos\prfvault> .\scripts\test-native-h
 
 ### 5.2. 현실적 회고 및 교훈
 
-데스크톱 실기 환경에서 `webauthn.dll`이 PRF 확장을 일방적으로 거부했을 때 플랫폼 종속성이 소프트웨어 아키텍처에 미치는 영향력을 확인했다. W3C 표준 명세서에 기능이 정의되어 있고 Chromium 브라우저가 지원 플래그를 켜두었더라도, 하위 운영체제 권한 계층이 게이트웨이를 닫아버리면 상위 웹 애플리케이션은 무력화된다.
+데스크톱 실기 환경에서 `webauthn.dll`이 PRF 확장을 명시적으로 거부했을 때 플랫폼 종속성이 소프트웨어 아키텍처에 미치는 영향력을 확인했다. W3C 표준 명세서에 기능이 정의되어 있고 Chromium 브라우저가 지원 플래그를 켜두었더라도, 하위 운영체제 권한 계층이 게이트웨이를 닫아버리면 상위 웹 애플리케이션은 무력화된다.
 
-이론적 완결성에만 매몰되어 웹 표준 단독 구현을 고집했다면 실제 사용자 데스크톱 환경에서 동작하지 않는 제약에 머물렀을 것이다. 플랫폼의 제약을 정면으로 인정하고 Chrome Native Messaging과 Windows CNG 저수준 C-FFI를 연결하여 네이티브 하드웨어 폴백 파이프라인을 구축한 결정이 프로젝트의 실용성을 확보했다.
+이론적 완결성에만 매몰되어 웹 표준 단독 구현을 고집했다면 실제 사용자 데스크톱 환경에서 동작하지 않는 제약에 머물렀을 것이다. 플랫폼의 제약을 정면으로 인정하고 크롬 네이티브 메시징과 Windows CNG 저수준 C-FFI를 연결하여 네이티브 하드웨어 폴백 파이프라인을 구축한 결정이 프로젝트의 실용성을 확보했다.
 
 무거운 서드파티 크레이트에 기대지 않고 운영체제 내장 `ncrypt.dll` 시스템 심볼을 직접 바인딩하여 바이너리 오버헤드와 공급망 위험을 최소화했다. 동시에 RAII 핸들 수명주기를 강제하여 OS 메모리 누수를 안정적으로 통제했다. 실전 보안 엔지니어링에서는 상위 레이어의 표준 명세뿐만 아니라 하위 OS와 하드웨어가 실제로 제공하는 인터페이스의 경계를 파악하고 이를 제어할 수 있는 저수준 시스템 구현 역량이 필수적이라는 기술적 결론을 도출했다.
